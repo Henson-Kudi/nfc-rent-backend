@@ -1,0 +1,10 @@
+{
+  "sm_otp": {
+    "content": "Your one time otp is {{ otp }}",
+    "title": "@HK Solutions"
+  },
+  "email_otp": {
+    "content": "Your one time otp is {{ otp }}",
+    "title": "@HK Solutions"
+  }
+}

@@ -1,0 +1,163 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName String
+  email     String   @unique
+  phone     String   @unique
+  photo    String?
+  googleId  String?
+  password  String?
+  loginType LoginType
+  emailVerified Boolean @default(false)
+  phoneVerified Boolean @default(false)
+  mfaEnabled Boolean @default(false)
+  totpSecret String? //secret for authenticator app
+  totpStatus TOTPStatus?
+  isActive Boolean @default(true)
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions  Session[]
+  otps OTP[]
+  organisations Organisation[]
+  collaborations Collaboration[]
+}
+
+model OTP{
+  id String @id @default(cuid())
+  token String //hashed otp value
+  userId String @unique
+  count Int @default(1)
+  expireAt DateTime
+  user User @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User @relation(fields: [userId], references: [id])
+  refreshToken     String @unique
+  device    String
+  location String?
+  expiresAt DateTime
+  isActive  Boolean @default(true)
+  loggedOutAt DateTime?
+  lastActiveAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@unique([userId, device])
+}
+
+enum LoginType {
+  EMAIL
+  GOOGLE
+}
+
+enum TOTPStatus {
+  ENABLED
+  REQUIRES_VERIFICATION
+}
+
+// NOTE MODELS THAT ARE NOT RELATED TO AUTH, IF THEY NEED TO CAPTURE USER, THEY SHOULD NOT DEFINE A RELATION SINCE THESE MODELS WOULD BE SAVING DATA IN ANOTHER DATABASE.
+
+model NotificationTemplate{
+  id String @id @default(cuid())
+  name String
+  slug String
+  title String
+  content String
+  params String[] // params needed to fillup title and/or content
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([createdBy, slug])
+  @@unique([createdBy, name])
+  @@index([createdBy, slug])
+  @@index([createdBy, name])
+}
+
+model Notification{
+  id String @id @default(cuid())
+  title String?
+  content String
+  receipient String
+  receipientId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expireAt DateTime?
+
+  @@index([receipientId])
+  @@index([receipient])
+}
+
+// User companies and its collaborators, settings, billing, etc
+
+enum OrganisationState {
+  CREATED
+  DB_INITIALISED
+}
+
+model Organisation{
+  id String @id @default(cuid())
+  name String
+  state OrganisationState @default(CREATED)
+  nameSlug String
+  owner User @relation(fields: [ownerId], onDelete: Cascade, references: [id])
+  ownerId String
+  collaborators Collaboration[]
+  modules OrganisationModule[]
+
+  @@unique([nameSlug, ownerId])
+}
+
+// Organisation modules help us track the state of the modules if they're initialised successfully or not
+model OrganisationModule{
+  organisationId String
+  organisation Organisation @relation(references: [id], fields: [organisationId], onDelete: Cascade)
+  name String
+  nameSlug String
+  state OrganisationModuleState @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organisationId, nameSlug])
+
+  @@index([organisationId, nameSlug])
+}
+
+enum OrganisationModuleState {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model Collaboration{
+  collaboratorId String
+  organisationId String
+  roles String[]
+  collaborator User @relation(references: [id], fields: [collaboratorId], onDelete: Cascade)
+  organisation Organisation @relation(references: [id], fields: [organisationId], onDelete: Cascade)
+
+  @@unique([collaboratorId, organisationId])
+}
+

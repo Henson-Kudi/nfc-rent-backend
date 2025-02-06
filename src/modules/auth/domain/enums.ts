@@ -1,0 +1,5 @@
+export enum OTPVERIFICATIONTYPES {
+  EMAIL = 'VERIFY_EMAIL',
+  PHONE = 'VERIFY_PHONE',
+  OTP = 'OTP',
+}

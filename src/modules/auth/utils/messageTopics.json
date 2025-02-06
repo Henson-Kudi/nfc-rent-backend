@@ -1,0 +1,8 @@
+{
+  "userRegistered": "auth.user.created",
+  "loggedIn": "auth.user.logged_in",
+  "loggedOut": "auth.user.logged_out",
+  "requestOtp": "auth.otp.request",
+  "resetPassword": "auth.user.reset_password",
+  "passwordChanged": "auth.user.password_changed"
+}

@@ -1,0 +1,6 @@
+{
+    "moduleInitialised": "module.initialised",
+    "subscriptions":{
+        "databaseCreated": "organisation.database.created"
+    }
+}

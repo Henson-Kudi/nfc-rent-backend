@@ -1,0 +1,23 @@
+{
+    "organisationCreated": "organisation.created",
+    "organisationUpdated": "organisation.updated",
+    "organisationDeleted": "organisation.deleted",
+    "organisationsDeleted": "organisation.deleted-many",
+
+    "collaboratorCreated": "organisation.collaborator.created",
+    "collaboratorUpdated": "organisation.collaborator.updated",
+    "collaboratorDeleted": "organisation.collaborator.deleted",
+    "organisationLeft": "organisation.collaborator.left",
+    "collaboratorsRemove": "organisation.collaborators.removed",
+    "rolesChanged": "organisation.collaborator.roles.changed",
+
+    "inviteCollaborators": "organisation.collaborator.send-invitation",
+
+    "databaseCreated": "organisation.database.created",
+
+    "subscriptions": {
+        "userRegistered": "auth.user.created",
+        "organisationCreated": "organisation.created",
+        "moduleInitialised": "module.initialised"
+    }
+}
