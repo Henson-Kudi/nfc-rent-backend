@@ -1,14 +1,12 @@
 import { createClient, RedisClientType } from 'redis';
-
-import {
-  IMessageBroker,
-  MessageHandler,
-  PublishedMessage,
-} from '@/types/global';
 import envConf from '@/config/env.conf';
 import logger from '../utils/logger';
+import Container, { Service, Token } from 'typedi';
 
-class MessageBroker implements IMessageBroker {
+
+export const MessageBrokerToken = new Token<IMessageBroker>()
+@Service({ id: MessageBrokerToken, global: true })
+export class MessageBroker implements IMessageBroker {
   private subscriber: RedisClientType;
   private publisher: RedisClientType;
   private isSubscriberConnected: boolean = false;
@@ -86,15 +84,11 @@ class MessageBroker implements IMessageBroker {
   }
 }
 
-const messageBroker = new MessageBroker();
-
 export function connectMessageBroker(): Promise<void> {
-  return messageBroker.connect();
+  return Container.get(MessageBrokerToken).connect();
 }
 
 export function gracefulShutdownMessageBroker(): Promise<void> {
   logger.info('Disconnecting from message broker...');
-  return messageBroker.quit();
+  return Container.get(MessageBrokerToken).quit();
 }
-
-export default messageBroker;

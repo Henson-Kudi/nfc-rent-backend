@@ -21,61 +21,9 @@ const nameValidator = Joi.string().min(2).max(100).pattern(nameRegex).messages({
   'string.pattern.base': 'Name cannot contain dangerous special characters',
 });
 
-type OTPValidationSchema = {
-  token?: string;
-  deviceName: string;
-  userId?: string;
-  email?: string;
-  location: string;
-  code: string;
-  [key: string]: unknown;
-};
-
-type RegisterUserSchema = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  photo?: string;
-  password: string;
-  confirmPassword: string;
-  [key: string]: unknown;
-};
-
-type LoginSchema = {
-  email?: string;
-  password?: string;
-  loginType: LoginType;
-  idToken?: string; // google login token
-  deviceName: string;
-  location: string;
-  [key: string]: unknown;
-};
-
-type LogoutSchema = {
-  userId: string;
-  deviceName: string;
-  location: string;
-  [key: string]: unknown;
-};
-
-type RequestOTPSchema = {
-  email?: string;
-  userId?: string;
-  phone?: string;
-  type: 'email' | 'phone';
-};
-
-type ChangePasswordSchema = {
-  oldPassword?: string;
-  newPassword: string;
-  userId: string;
-  confirmNewPassword: string;
-};
-
-export const RegisterUserSchema = Joi.object<RegisterUserSchema>({
-  firstName: nameValidator.required(),
-  lastName: nameValidator.required(),
+export const RegisterUserSchema = Joi.object<RegisterUserData>({
+  fullName: nameValidator.required(),
+  // lastName: nameValidator.required(),
   email: Joi.string().email().required(),
   phone: Joi.string().required(),
   photo: Joi.string().optional().allow('').allow(null),
@@ -88,7 +36,7 @@ export const RegisterUserSchema = Joi.object<RegisterUserSchema>({
     }),
 }).unknown();
 
-export const LoginSchema = Joi.object<LoginSchema>({
+export const LoginSchema = Joi.object<LoginData>({
   deviceName: Joi.string().required(),
   email: Joi.string().when('loginType', {
     is: LoginType.EMAIL,
@@ -112,13 +60,13 @@ export const LoginSchema = Joi.object<LoginSchema>({
   }),
 }).unknown();
 
-export const LogoutSchema = Joi.object<LogoutSchema>({
+export const LogoutSchema = Joi.object<LogoutData>({
   deviceName: Joi.string().required(),
   userId: Joi.string().required(),
   location: Joi.string().required(),
 }).unknown();
 
-export const OTPValidationSchema = Joi.object<OTPValidationSchema>({
+export const OTPValidationSchema = Joi.object<OTPValidationData>({
   code: Joi.string().required().max(6),
   token: Joi.string().optional(),
   deviceName: Joi.string().required(),
@@ -130,7 +78,7 @@ export const OTPValidationSchema = Joi.object<OTPValidationSchema>({
     .required(),
 });
 
-export const RequestOTPSchema = Joi.object<RequestOTPSchema>({
+export const RequestOTPSchema = Joi.object<RequestOTPData>({
   type: Joi.string().valid('email', 'phone').required(),
   userId: Joi.string().optional().allow('').allow(null),
   email: Joi.string().email().optional().allow('').allow(null),
@@ -139,7 +87,7 @@ export const RequestOTPSchema = Joi.object<RequestOTPSchema>({
   .or('email', 'userId', 'phone')
   .unknown();
 
-export const ChangePasswordSchema = Joi.object<ChangePasswordSchema>({
+export const ChangePasswordSchema = Joi.object<ChangePasswordData>({
   oldPassword: passwordValidator.optional().allow('').allow(null),
   newPassword: passwordValidator.required(),
   confirmNewPassword: Joi.string().valid(Joi.ref('newPassword')).messages({

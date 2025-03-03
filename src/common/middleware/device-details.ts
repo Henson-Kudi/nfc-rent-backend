@@ -21,8 +21,8 @@ export const deviceDetailsMiddleware = (
       })
     );
   } else {
-    req.deviceName = deviceName as string;
-    req.deviceLocation = (deviceLocation ||
+    req.headers['x-device-name'] = deviceName as string;
+    req.headers['x-device-location'] = (deviceLocation ||
       forwardedFor ||
       'unknown') as string;
 

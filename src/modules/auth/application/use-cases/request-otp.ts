@@ -1,39 +1,35 @@
 import { AppError, IReturnValue } from '@/common/utils';
 import { RequestOTPDto } from '@/modules/auth/domain/dtos';
-import { IMessageBroker, IUseCase } from '@/types/global';
-import IAuthUserRepository from '../repositories/auth';
 import IPasswordManager from '../providers/passwordManager';
-import { OTP, User } from '@prisma/client';
 import { ResponseCodes } from '@/common/enums';
 import generateRandomNumber from '@/common/utils/randomNumber';
 import moment from 'moment';
 import { requestOtp } from '../../utils/messageTopics.json';
 import logger from '@/common/utils/logger';
-import { UserWithVerificationType } from '../../types';
 import { OTPVERIFICATIONTYPES } from '../../domain/enums';
 import { encryptData } from '@/common/utils/encryption';
+import { Repository } from 'typeorm';
+import { OTP, User } from '@/common/entities';
+import { UserRepository } from '../../infrastructure/repositories/user.repository';
+import { OTPRepository } from '../../infrastructure/repositories/otp.repository';
+import { instanceToPlain } from 'class-transformer';
 
 const BASE_WAIT_TIME = 120; // 2mins - 120seconds
 const MAX_WAIT_TIME = 900; // 15mins - 900seconds
 
-class ResendOtp
-  implements IUseCase<[RequestOTPDto], IReturnValue<{ sent: boolean, token: string }>> {
-  private readonly repository: IAuthUserRepository;
-  private readonly passwordManager: IPasswordManager;
-  private readonly messageBroker: IMessageBroker;
+// @Service('auth.requestOtp.use-case')
+class RequestOTP implements IUseCase<[RequestOTPData], IReturnValue<{ sent: boolean, token: string }>> {
+
 
   constructor(
-    repo: IAuthUserRepository,
-    passwordManager: IPasswordManager,
-    broker: IMessageBroker
-  ) {
-    this.repository = repo;
-    this.passwordManager = passwordManager;
-    this.messageBroker = broker;
-  }
+    private readonly repository: UserRepository,
+    private readonly otpRepo: OTPRepository,
+    private readonly passwordManager: IPasswordManager,
+    private readonly messageBroker: IMessageBroker,
+  ) { }
 
   async execute(
-    param: RequestOTPDto
+    param: RequestOTPData
   ): Promise<IReturnValue<{ sent: boolean, token: string }>> {
     const data = new RequestOTPDto(param);
 
@@ -42,11 +38,11 @@ class ResendOtp
     let user: User | null = null;
 
     if (validData.userId) {
-      user = await this.repository.findById(validData.userId);
+      user = await this.repository.findOneBy({ id: validData.userId });
     } else if (validData.email) {
-      user = await this.repository.findByEmail(validData.email);
+      user = await this.repository.findOneBy({ email: validData.email });
     } else if (validData.phone) {
-      user = await this.repository.findByPhone(validData.phone)
+      user = await this.repository.findOneBy({ phone: validData.phone })
     }
 
     if (!user) {
@@ -56,14 +52,16 @@ class ResendOtp
       });
     }
 
-    let otp: OTP | null = await this.repository.getOtpCodeByUserId(user.id);
+    user = instanceToPlain(user) as User
+
+    let otp: OTP | null = await this.otpRepo.findOneBy({ userId: user.id });
 
     const code = generateRandomNumber(6);
     const harshedOtp = await this.passwordManager.encryptPassword(code);
 
     if (otp) {
       const resendCount = otp.count;
-      const lastResent = new Date(otp.updatedAt).getTime();
+      const lastResent = new Date(otp.updatedAt!).getTime();
 
       const waitTime = Math.min(
         BASE_WAIT_TIME * Math.pow(2, resendCount),
@@ -82,25 +80,27 @@ class ResendOtp
       }
 
       // Generate new otp code for security
+      const expireAt = moment().add(15, 'minutes').toDate()
 
-      otp = await this.repository.updateOtpCode({
-        where: { id: otp.id },
-        data: {
-          ...otp,
-          count: otp.count + 1,
-          expireAt: moment().add(15, 'minutes').toDate(),
-          token: harshedOtp,
-        },
+      await this.otpRepo.update({ id: otp.id }, {
+        ...otp,
+        count: otp.count + 1,
+        expireAt: expireAt,
+        token: harshedOtp,
       });
+
+      otp.expireAt = expireAt
+      otp.token = harshedOtp
+      otp.count += 1
     } else {
       // Save token to db and
-      otp = await this.repository.createOtp({
-        data: {
-          userId: user.id,
-          token: harshedOtp,
-          expireAt: moment().add(15, 'minutes').toDate(), // token expires after 10mins
-        },
+      otp = this.otpRepo.create({
+        userId: user.id,
+        token: harshedOtp,
+        expireAt: moment().add(15, 'minutes').toDate(), // token expires after 10mins
       });
+
+      await this.otpRepo.save(otp)
     }
 
     if (!otp) {
@@ -110,7 +110,7 @@ class ResendOtp
       });
     }
 
-    const encData: UserWithVerificationType = {
+    const encData = {
       ...(user),
       verificationType: validData.type === 'email' ? OTPVERIFICATIONTYPES.EMAIL : OTPVERIFICATIONTYPES.PHONE,
     };
@@ -125,7 +125,7 @@ class ResendOtp
           ...user,
           code,
           otpType: validData.type
-        },
+        } as User & { code: string, otpType: 'email' | 'phone' },
       });
     } catch (err) {
       logger.error(`Failed to publish ${requestOtp} message`, err);
@@ -139,4 +139,4 @@ class ResendOtp
   }
 }
 
-export default ResendOtp;
+export default RequestOTP;

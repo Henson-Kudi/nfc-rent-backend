@@ -1,13 +1,13 @@
-import { User } from '@prisma/client';
 import { ResponseCodes } from '@/common/enums';
 import { AppError } from '@/common/utils';
 import { LoginDto } from '@/modules/auth/domain/dtos';
 import IPasswordManager from '../providers/passwordManager';
-import IAuthUserRepository from '../repositories/auth';
+import { User } from '@/common/entities';
+import { UserRepository } from '../../infrastructure/repositories/user.repository';
 
 export default async function defaultLogin(
   data: LoginDto,
-  repo: IAuthUserRepository,
+  repo: UserRepository,
   passwordManager: IPasswordManager
 ): Promise<User> {
   if (!data.email || !data.password) {
@@ -17,15 +17,7 @@ export default async function defaultLogin(
     });
   }
 
-  const user = await repo.findByEmail(data.email, {
-    include: {
-      collaborations: {
-        include: {
-          organisation: true
-        }
-      }
-    }
-  });
+  const user = await repo.findOne({ where: { email: data.email } });
 
   if (!user || !user?.password) {
     throw new AppError({

@@ -1,4 +1,3 @@
-import { IUseCase } from '@/types/global';
 import NotificationRepository from '../repositories/notifications-repository';
 import { NotificationChannelFactory } from '../../infrastructure/providers';
 import { AppError, IReturnValue } from '@/common/utils';
@@ -7,21 +6,19 @@ import ITemplatesRepository from '../repositories/templates-repository';
 import slugify from '@/common/utils/slugify';
 import { renderNotificationTemplate } from '../../utils/compile-template';
 import { NotificationMemoryCache } from '../../config/memory-cache';
-import { Notification } from '@prisma/client';
 
 export class SendNotification
   implements
-    IUseCase<
-      [SendNotificationDTO, Record<string, unknown>],
-      IReturnValue<{ sent: boolean }>
-    >
-{
+  IUseCase<
+    [SendNotificationDTO, Record<string, unknown>],
+    IReturnValue<{ sent: boolean }>
+  > {
   constructor(
     private readonly notificationRepo: NotificationRepository,
     private readonly channelFactory: NotificationChannelFactory,
     private readonly templatesRepo: ITemplatesRepository,
     private readonly cache: NotificationMemoryCache
-  ) {}
+  ) { }
 
   async execute<T extends object>(
     input: SendNotificationDTO,
@@ -79,16 +76,16 @@ export class SendNotification
 
     const compiledTitle = template?.title
       ? renderNotificationTemplate(template?.title, {
-          ...input,
-          ...templateOptions,
-        })
+        ...input,
+        ...templateOptions,
+      })
       : undefined;
     const compiledBody = renderNotificationTemplate(template?.content, {
       ...input,
       ...templateOptions,
     });
 
-    let notification: Partial<Notification> & {
+    let notification: Partial<any> & {
       content: string;
       receipientId: string;
       receipient: string;
@@ -104,6 +101,8 @@ export class SendNotification
         data: notification,
       });
     }
+
+    console.log(compiledBody)
 
     const channelFactory = this.channelFactory.getChannel(input.channel);
 

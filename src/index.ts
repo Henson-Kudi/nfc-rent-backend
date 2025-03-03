@@ -1,19 +1,39 @@
 import "reflect-metadata"
+/// <reference path="./types/global" />
+/// <reference path="./types/global-imports" />
 
 import startServer from './app';
 import { cleanup } from './cleanup';
 import { connectCache } from './common/cache/redis-cache';
 import { connectMessageBroker } from './common/message-broker';
 import subscribeToEvents from './modules/notifications/presentation/event-handlers/subscriptions';
-import { subscribeToEvents as orgSubs } from './modules/organisation/presentation/events';
 import { subscriptions as authSubscriptions } from './modules/notifications/utils/message-topics.json';
-import { registerShopEntities } from "./modules/organisation/domain/entities";
-import { productServiceEventSubscriptions } from "./modules/products/presentation/events";
-import { shopServiceEventSubscriptions } from "./modules/shops/presentation/events";
+import { dataSource, initializeDb, runMigrations } from "./common/database";
+import { initializeDI } from "./loaders/di";
+import { seedModules } from "./seeders/resources.seeder";
+import { seedDefaultRoles } from "./seeders/role.seeder";
+
 
 // Run application
-(() => {
-  // Conect to databases
+(async () => {
+  // await runMigrations()
+
+  // Connect to datasource before starting the server
+  const datsSource = await initializeDb()
+
+  initializeDI(datsSource)
+
+  // const roleRepo = Container.get(UserRepository)
+
+  // const userRole = await roleRepo.findOne({ where: { email: 'amahkudi2@gmail.com' }, relations: ['roles'] })
+
+  // console.log(userRole)
+
+  // Make sure to seed modules before seeding roles
+  // await seedModules(datsSource)
+
+  // await seedDefaultRoles(dataSource)
+
 
   // Start server
   startServer();
@@ -25,16 +45,7 @@ import { shopServiceEventSubscriptions } from "./modules/shops/presentation/even
   connectMessageBroker().then(() => {
     // Subscribe to a channels here
     subscribeToEvents(authSubscriptions);
-
-    // Organisation event subscriptions
-    orgSubs()
-    productServiceEventSubscriptions()
-    shopServiceEventSubscriptions()
-    // messageBroker.subscribe('channel1');
   });
-
-  // Register multitenant entities
-  registerShopEntities()
 
   // Start Cron Jobs
   // cronJobs()

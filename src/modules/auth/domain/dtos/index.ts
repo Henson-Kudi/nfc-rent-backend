@@ -11,26 +11,26 @@ import {
 import { LoginType } from '@prisma/client';
 
 export class RegisterUserDto {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phone: string;
   photo?: string;
   password: string;
   confirmPassword: string;
+  roles?: string[]
 
-  constructor(init: Omit<RegisterUserDto, 'validate'>) {
-    this.firstName = init.firstName;
-    this.lastName = init.lastName;
+  constructor(init: RegisterUserData) {
+    this.fullName = init.fullName;
     this.email = init.email;
     this.phone = init.phone;
     this.photo = init?.photo;
     this.password = init.password;
     this.confirmPassword = init.confirmPassword;
+    this.roles = init.roles
   }
 
   validate() {
-    return RegisterUserSchema.validateAsync(this);
+    return RegisterUserSchema.validateAsync(this, { abortEarly: false });
   }
 }
 
@@ -42,7 +42,7 @@ export class LoginDto {
   deviceName: string;
   location: string;
 
-  constructor(data: Omit<LoginDto, 'validate'>) {
+  constructor(data: LoginData) {
     this.email = data?.email;
     this.password = data?.password;
     this.loginType = data?.loginType || 'email';
@@ -61,7 +61,7 @@ export class LogoutDTO {
   deviceName: string;
   location: string;
 
-  constructor(data: Omit<LogoutDTO, 'validate'>) {
+  constructor(data: LogoutData) {
     this.userId = data?.userId;
     this.deviceName = data.deviceName || 'unknown';
     this.location = data?.location || 'unknown';
@@ -75,7 +75,7 @@ export class LogoutDTO {
 export class ResetPasswordDto {
   email: string;
 
-  constructor(data: Omit<ResetPasswordDto, 'validate'>) {
+  constructor(data: { email: string }) {
     this.email = data.email;
   }
 
@@ -90,7 +90,7 @@ export class ChangePasswordDto {
   confirmNewPassword: string;
   userId: string;
 
-  constructor(data: Omit<ChangePasswordDto, 'validate'>) {
+  constructor(data: ChangePasswordData) {
     this.oldPassword = data?.oldPassword;
     this.newPassword = data.newPassword;
     this.userId = data.userId;
@@ -126,13 +126,13 @@ export class OTPVerificationDto {
   location?: string;
   type: OTPType;
 
-  constructor(data: Omit<OTPVerificationDto, 'validate'>) {
+  constructor(data: OTPValidationData) {
     this.token = data.token;
     this.deviceName = data.deviceName;
     this.userId = data?.userId;
     this.email = data?.email;
     this.location = data?.location;
-    this.type = data.type || OTPType.EMAIL;
+    this.type = data.type as OTPType || OTPType.EMAIL;
     this.code = data.code;
   }
 
@@ -149,7 +149,7 @@ export class RequestOTPDto {
   phone?: string
   type: 'email' | 'phone';
 
-  constructor(data: Omit<RequestOTPDto, 'validate'>) {
+  constructor(data: RequestOTPData) {
     this.type = data.type || 'email';
     this.userId = data?.userId;
     this.email = data?.email;

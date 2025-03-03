@@ -1,20 +1,20 @@
-import { User } from '@prisma/client';
 import { AppError, IReturnValue } from '@/common/utils';
 import { TokenDto } from '@/modules/auth/domain/dtos';
-import { ITokenManager, IUseCase } from '@/types/global';
-import IAuthUserRepository from '../repositories/auth';
 import { ResponseCodes } from '@/common/enums';
 import moment from 'moment';
+import { User } from '@/common/entities';
+import { SessionRepository } from '../../infrastructure/repositories/session.repository';
+import { UserRepository } from '../../infrastructure/repositories/user.repository';
+import { instanceToPlain } from 'class-transformer';
 
-class RefreshAccessToken
+export class RefreshAccessToken
   implements IUseCase<[string, string, string], IReturnValue<User & TokenDto>> {
-  private readonly repository: IAuthUserRepository;
-  private readonly tokenManager: ITokenManager;
 
-  constructor(repo: IAuthUserRepository, tokenManager: ITokenManager) {
-    this.repository = repo;
-    this.tokenManager = tokenManager;
-  }
+  constructor(
+    private readonly repository: UserRepository,
+    private readonly sessionRepo: SessionRepository,
+    private readonly tokenManager: ITokenManager
+  ) { }
 
   async execute(
     refreshToken: string,
@@ -26,24 +26,12 @@ class RefreshAccessToken
       refreshToken
     );
 
-    const user = await this.repository.findById(verifiedToken.userId, {
-      include: {
-        collaborations: {
-          include: {
-            organisation: true
-          }
-        }
-      }
-    });
+    const user = instanceToPlain(await this.repository.findOneBy({ id: verifiedToken.userId })) as User;
 
     // Session must be available. Token can only come from a session
-    let session = await this.repository.findUserSession({
-      where: {
-        userId_device: {
-          userId: verifiedToken.userId,
-          device,
-        },
-      },
+    let session = await this.sessionRepo.findOneBy({
+      userId: verifiedToken.userId,
+      device,
     });
 
     if (!user || !user.isActive || user.isDeleted || !session) {
@@ -83,16 +71,19 @@ class RefreshAccessToken
         (decodedRefreshToken.exp as number) * 1000
       );
 
-      session = await this.repository.updateUserSession({
-        where: {
-          id: session.id,
-        },
-        data: {
-          refreshToken: refreshToken,
-          expiresAt: refreshTokenExpiry,
-          lastActiveAt: new Date(),
-        },
+      const now = new Date()
+
+      await this.sessionRepo.update({
+        id: session.id,
+      }, {
+        refreshToken: refreshToken,
+        expiresAt: refreshTokenExpiry,
+        lastActiveAt: now,
       });
+
+      session.refreshToken = refreshToken
+      session.expiresAt = refreshTokenExpiry
+      session.lastActiveAt = now
     }
 
     if (!session) {
@@ -116,7 +107,7 @@ class RefreshAccessToken
           expireAt: session.expiresAt,
         },
       },
-    });
+    }) as IReturnValue<User & TokenDto>;
   }
 }
 

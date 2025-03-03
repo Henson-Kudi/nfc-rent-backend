@@ -1,35 +1,29 @@
 import { AppError, IReturnValue } from '@/common/utils';
 import { ResetPasswordDto } from '@/modules/auth/domain/dtos';
-import { IMessageBroker, ITokenManager, IUseCase } from '@/types/global';
-import IAuthUserRepository from '../repositories/auth';
 import { ResponseCodes } from '@/common/enums';
 import logger from '@/common/utils/logger';
 import { resetPassword } from '../../utils/messageTopics.json';
-import { User } from '@prisma/client';
+import { User } from '@/common/entities';
+import { UserRepository } from '../../infrastructure/repositories/user.repository';
+
 
 class ResetPassword
-  implements IUseCase<[ResetPasswordDto], IReturnValue<{ sent: true }>>
-{
-  private readonly userRepository: IAuthUserRepository;
-  private readonly messageBroker: IMessageBroker;
-  private readonly tokenManager: ITokenManager;
+  implements IUseCase<[{ email: string }], IReturnValue<{ sent: true }>> {
+
 
   constructor(
-    userRepository: IAuthUserRepository,
-    broker: IMessageBroker,
-    tokenManager: ITokenManager
-  ) {
-    this.userRepository = userRepository;
-    this.messageBroker = broker;
-    this.tokenManager = tokenManager;
-  }
+    // @Inject('global.datasource')
+    private readonly userRepository: UserRepository,
+    private readonly messageBroker: IMessageBroker,
+    private readonly tokenManager: ITokenManager
+  ) { }
 
-  async execute(data: ResetPasswordDto): Promise<IReturnValue<{ sent: true }>> {
-    data = new ResetPasswordDto(data);
+  async execute(data: { email: string }): Promise<IReturnValue<{ sent: true }>> {
+    const input = new ResetPasswordDto(data);
 
-    data.validate();
+    input.validate();
 
-    const user = await this.userRepository.findByEmail(data.email);
+    const user = await this.userRepository.findOneBy({ email: data.email });
 
     if (!user || !user.isActive || user.isDeleted) {
       throw new AppError({
@@ -51,7 +45,7 @@ class ResetPassword
       await this.messageBroker.publishMessage<User & { token: string }>(
         resetPassword,
         {
-          data: { ...user, token: accessToken },
+          data: { ...user, token: accessToken } as User & { token: string },
         }
       );
     } catch (err) {

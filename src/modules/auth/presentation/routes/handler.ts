@@ -1,5 +1,4 @@
 import { AppError, IReturnValue } from '@/common/utils';
-import { IController } from '@/types/global';
 import { CookieOptions, NextFunction, Request, Response } from 'express';
 import { ResponseCodes } from '@/common/enums';
 

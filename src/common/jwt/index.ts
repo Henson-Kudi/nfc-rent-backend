@@ -1,23 +1,20 @@
-import jwt, { SignOptions } from 'jsonwebtoken';
-import { ITokenManager, JwtPayload, JwtType } from '@/types/global';
 import envConf from '@/config/env.conf';
+import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
+import { Service, Token } from 'typedi';
 
+export const TokenManagerToken = new Token<ITokenManager>()
+@Service({ id: TokenManagerToken, global: true })
 export class TokenManager implements ITokenManager {
   private readonly accessTokenPrivatekey: string;
   private readonly refreshTokenPrivatekey: string;
   private readonly accessTokenExpiresIn: string;
   private readonly refreshTokenExpiresIn: string;
 
-  constructor(config: {
-    accessKey: string;
-    refreshKey: string;
-    accessTokenExpiresIn: string;
-    refreshTokenExpiresIn: string;
-  }) {
-    this.accessTokenPrivatekey = config.accessKey;
-    this.refreshTokenPrivatekey = config.refreshKey;
-    this.accessTokenExpiresIn = config.accessTokenExpiresIn;
-    this.refreshTokenExpiresIn = config.refreshTokenExpiresIn;
+  constructor() {
+    this.accessTokenPrivatekey = envConf.ACCESS_TOKEN_PRIVATE_KEY;
+    this.refreshTokenPrivatekey = envConf.REFRESH_TOKEN_PRIVATE_KEY;
+    this.accessTokenExpiresIn = envConf.ACCESS_TOKEN_EXPIRES_IN;
+    this.refreshTokenExpiresIn = envConf.REFRESH_TOKEN_EXPIRES_IN;
   }
 
   generateToken(type: JwtType, payload: JwtPayload, options: SignOptions) {
@@ -48,12 +45,3 @@ export class TokenManager implements ITokenManager {
     return jwt.decode(token) as JwtPayload;
   }
 }
-
-const tokenManager = new TokenManager({
-  accessKey: envConf.ACCESS_TOKEN_PRIVATE_KEY,
-  refreshKey: envConf.REFRESH_TOKEN_PRIVATE_KEY,
-  accessTokenExpiresIn: envConf.ACCESS_TOKEN_EXPIRES_IN,
-  refreshTokenExpiresIn: envConf.REFRESH_TOKEN_EXPIRES_IN,
-});
-
-export default tokenManager;

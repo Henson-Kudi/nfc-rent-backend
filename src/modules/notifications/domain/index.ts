@@ -1,4 +1,3 @@
-import { SupportedLocales } from '@/types/global';
 import { NotificationType } from '../types';
 
 export class SendNotificationDTO {

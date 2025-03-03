@@ -1,8 +1,10 @@
 import { LRUCache } from 'lru-cache';
+import { Service } from 'typedi';
 
 const DEFAULT_MAX_SIZE = 500;
 const DEFAULT_TTL = 1000 * 60 * 5; // 5 minutes
 
+@Service()
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export class MemoryCache<K extends {}, V extends {}, FC = unknown> {
   private cache: LRUCache<K, V, FC>;
@@ -49,5 +51,3 @@ export class MemoryCache<K extends {}, V extends {}, FC = unknown> {
     return v;
   }
 }
-
-export const memoryCache = new MemoryCache();

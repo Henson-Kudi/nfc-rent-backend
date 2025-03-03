@@ -1,15 +1,17 @@
 import { IReturnValue } from '@/common/utils';
 import { Request } from 'express';
-import authService from '@/modules/auth/application/services/auth-service';
-import { IController } from '@/types/global';
 
+import { AuthService } from '@/modules/auth/application/services/auth.service';
+import Container, { Service } from 'typedi';
+
+@Service()
 class ChangePasswordController
-  implements IController<Promise<IReturnValue<{ success: boolean }>>>
-{
+  implements IController<Promise<IReturnValue<{ success: boolean }>>> {
   handle(request: Request) {
+    const authService = Container.get(AuthService)
     const userId = request.headers?.['user-id'];
 
-    return authService.changePassword.execute({
+    return authService.changePassword({
       ...request.body,
       userId,
     });

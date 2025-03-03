@@ -1,29 +1,31 @@
-import { User } from '@prisma/client';
 import { IReturnValue } from '@/common/utils';
 import { Request } from 'express';
-import authService from '@/modules/auth/application/services/auth-service';
+import { AuthService } from '@/modules/auth/application/services/auth.service';
 import { TokenDto } from '@/modules/auth/domain/dtos';
-import { IController } from '@/types/global';
+import { User } from '@/common/entities';
+import { LoginType } from '@/common/enums';
+import Container from 'typedi';
 
 class LoginController
   implements
-    IController<
-      Promise<
-        IReturnValue<
-          | (User & TokenDto)
-          | {
-              requiresOtp: boolean;
-              token: string; // encrypted user object
-            }
-        >
+  IController<
+    Promise<
+      IReturnValue<
+        | (User & TokenDto)
+        | {
+          requiresOtp: boolean;
+          token: string; // encrypted user object
+        }
       >
     >
-{
+  > {
   handle(request: Request) {
-    const deviceName = request.deviceName;
-    const location = request.deviceLocation;
-    return authService.login.execute({
+    const authService = Container.get(AuthService)
+    const deviceName = request?.headers?.['x-device-name'];
+    const location = request?.headers?.['x-device-location'];
+    return authService.login({
       ...request.body,
+      loginType: request?.body?.loginType || LoginType.EMAIL,
       location,
       deviceName,
     });

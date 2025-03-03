@@ -1,11 +1,8 @@
-import { Prisma, Notification } from '@prisma/client';
 import INotificationRepository from '../../application/repositories/notifications-repository';
-import { getDefaultPrismaClient } from '@/common/database';
 
 class NotificationsRepository implements INotificationRepository {
-  private readonly db = getDefaultPrismaClient();
 
-  create(data: Prisma.NotificationCreateArgs): Promise<Notification> {
+  create(data: any): Promise<any> {
     throw new Error('Method not implemented.');
   }
 }

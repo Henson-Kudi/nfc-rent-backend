@@ -2,6 +2,7 @@ import 'dotenv/config';
 
 const envConf = {
   PORT: process.env.PORT || 5000,
+  rootDir: process.cwd(),
   NODE_ENV: process.env.NODE_ENV || 'development',
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
   ACCESS_TOKEN_PRIVATE_KEY:
@@ -22,7 +23,6 @@ const envConf = {
   CRYPTO_ENCRYPTION_KEY:
     process.env?.CRYPTO_ENCRYPTION_KEY ||
     'YzIffRyYQGbp1oDbrk1eyW5xUiUUv40RY7PBFC730oE=',
-  DATABASE_SERVER_URL: process?.env?.DATABASE_SERVER_URL || '',
   DATABASE_URL: process?.env?.DATABASE_URL || ''
 };
 

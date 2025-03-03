@@ -1,7 +1,13 @@
 import TOTPMFA from '@/modules/auth/application/providers/totp';
 import speakeasy from 'speakeasy';
+import { Service, Token } from 'typedi';
 
-class TOTP implements TOTPMFA {
+
+export const TOTPToken = new Token<TOTPMFA>()
+@Service({
+  id: TOTPToken, global: true
+})
+export class TOTP implements TOTPMFA {
   generateSecret(userEmail: string) {
     return speakeasy.generateSecret({
       issuer: `${userEmail}@HK_Solutions`,

@@ -1,7 +1,9 @@
 import { createClient, RedisClientType } from 'redis';
 import envConf from '../../config/env.conf';
 import logger from '../utils/logger';
+import Container, { Service } from 'typedi';
 
+@Service()
 export class Cache {
   private client: RedisClientType;
   private readonly defaultTTL: number = 3600; // 1 hour in seconds
@@ -13,11 +15,7 @@ export class Cache {
 
   async set(key: string, value: string, ttl?: number): Promise<void> {
     try {
-      if (ttl) {
-        await this.client.setEx(key, ttl, value);
-      } else {
-        await this.client.setEx(key, this.defaultTTL, value);
-      }
+      await this.client.setEx(key, ttl || this.defaultTTL, value);
     } catch (error) {
       logger.error('Redis set error:', error);
       throw error;
@@ -27,7 +25,7 @@ export class Cache {
   async get<T>(key: string): Promise<T | null> {
     try {
       const value = await this.client.get(key);
-      return value ? JSON.parse(value) : null;
+      return value ? JSON.parse(value) as T : null;
     } catch (error) {
       logger.error('Redis get error:', error);
       throw error;
@@ -69,15 +67,12 @@ export class Cache {
   }
 }
 
-const redisCache = new Cache();
-
 export function connectCache(): Promise<void> {
-  return redisCache.connect();
+
+  return Container.get(Cache).connect();
 }
 
 export function gracefulShutdownCache(): Promise<void> {
   logger.info('Disconnecting from cache...');
-  return redisCache.quit();
+  return Container.get(Cache).quit();
 }
-
-export default redisCache;

@@ -1,11 +1,11 @@
-import { OAuth2Client } from 'google-auth-library';
-import IGoogleServicesManager from '@/types/global';
 import { oAuthClient as authClient } from './oauth';
+import { Service, Token } from 'typedi';
 
-class GoogleServicesManager implements IGoogleServicesManager {
-  oAuthClient: OAuth2Client = authClient;
+export const GoogleServicesManagerToken = new Token<IGoogleServicesManager>()
+@Service({
+  id: GoogleServicesManagerToken,
+  global: true
+})
+export class GoogleServicesManager implements IGoogleServicesManager {
+  oAuthClient = authClient;
 }
-
-const googleservicesManager = new GoogleServicesManager();
-
-export default googleservicesManager;

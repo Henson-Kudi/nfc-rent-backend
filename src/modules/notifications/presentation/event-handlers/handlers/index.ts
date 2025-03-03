@@ -1,4 +1,3 @@
-import { MessageHandler } from '@/types/global';
 import { subscriptions } from '../../../utils/message-topics.json';
 import handleUserRegistereMessage from './auth.register';
 import handleUserLoginMessage from './auth.login';

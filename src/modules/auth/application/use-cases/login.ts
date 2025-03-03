@@ -1,28 +1,21 @@
 import { AppError, IReturnValue } from '@/common/utils';
 import { LoginDto, TokenDto } from '@/modules/auth/domain/dtos';
-import IGoogleServicesManager, {
-  IMessageBroker,
-  ITokenManager,
-  IUseCase,
-} from '@/types/global';
-import IAuthUserRepository from '../repositories/auth';
 import IPasswordManager from '../providers/passwordManager';
-import { LoginType, User } from '@prisma/client';
 import defaultLogin from './defaultLogin';
 import googleLogin from './google-login';
-import { OTPType, ResponseCodes } from '@/common/enums';
+import { LoginType, OTPType, ResponseCodes } from '@/common/enums';
 import { loggedIn } from '../../utils/messageTopics.json';
 import logger from '@/common/utils/logger';
-import googleservicesManager from '@/config/google';
 import { OTPVERIFICATIONTYPES } from '../../domain/enums';
 import { encryptData } from '@/common/utils/encryption';
-import { UserWithVerificationType } from '../../types';
-import e from 'express';
-
+import { User } from '@/common/entities';
+import { UserRepository } from '../../infrastructure/repositories/user.repository';
+import { SessionRepository } from '../../infrastructure/repositories/session.repository';
+import { instanceToPlain } from 'class-transformer';
 class Login
   implements
   IUseCase<
-    [LoginDto],
+    [LoginData],
     IReturnValue<
       | (User & TokenDto)
       | {
@@ -31,24 +24,17 @@ class Login
       }
     >
   > {
-  private readonly repository: IAuthUserRepository;
-  private readonly messageBroker: IMessageBroker;
-  private readonly passwordManager: IPasswordManager;
-  private readonly tokenManager: ITokenManager;
 
   constructor(
-    repo: IAuthUserRepository,
-    messageBroker: IMessageBroker,
-    passwordManager: IPasswordManager,
-    tokenManager: ITokenManager
-  ) {
-    this.repository = repo;
-    this.messageBroker = messageBroker;
-    this.passwordManager = passwordManager;
-    this.tokenManager = tokenManager;
-  }
+    private readonly repository: UserRepository,
+    private readonly sessionRepo: SessionRepository,
+    private readonly messageBroker: IMessageBroker,
+    private readonly passwordManager: IPasswordManager,
+    private readonly tokenManager: ITokenManager,
+    private readonly googleservicesManager: IGoogleServicesManager
+  ) { }
 
-  async execute(data: LoginDto): Promise<
+  async execute(input: LoginData): Promise<
     IReturnValue<
       | (User & TokenDto)
       | {
@@ -57,7 +43,7 @@ class Login
       }
     >
   > {
-    data = new LoginDto(data);
+    const data = new LoginDto(input);
 
     // Validate login data
     await data.validate();
@@ -73,7 +59,7 @@ class Login
         user = await googleLogin(
           data,
           this.repository,
-          googleservicesManager.oAuthClient,
+          this.googleservicesManager.oAuthClient,
           this.messageBroker
         );
         break;
@@ -92,6 +78,8 @@ class Login
       });
     }
 
+    user = instanceToPlain(user) as User
+
     // If user's email is not verified, ensure they verify before giving them access to platform
     if (!user.emailVerified) {
       try {
@@ -103,13 +91,13 @@ class Login
             ...user,
             requiresOtp: true,
             otpType: OTPType.EMAIL,
-          },
+          } as User & { requiresOtp: boolean; otpType: OTPType },
         });
       } catch (err) {
         logger.error('Failed to send otp code', err);
       }
 
-      const encData: UserWithVerificationType = {
+      const encData = {
         ...user,
         verificationType: OTPVERIFICATIONTYPES.EMAIL,
       };
@@ -129,12 +117,10 @@ class Login
     }
 
     // Manage user sessions
-    let session = await this.repository.findUserSession({
+    let session = await this.sessionRepo.findOne({
       where: {
-        userId_device: {
-          userId: user.id,
-          device: data.deviceName,
-        },
+        userId: user.id,
+        device: data.deviceName,
       },
     });
 
@@ -145,15 +131,15 @@ class Login
       } catch (err) {
         // If its google login, create a new session
         if (data.loginType === LoginType.GOOGLE) {
-          session = await this.repository.createUserSession({
-            data: {
-              device: data.deviceName,
-              userId: user.id,
-              refreshToken: '',
-              expiresAt: new Date(),
-              location: data?.location
-            }
+          session = this.sessionRepo.create({
+            device: data.deviceName,
+            userId: user.id,
+            refreshToken: '',
+            expiresAt: new Date(),
+            location: data?.location
           })
+          await this.sessionRepo.save(session)
+
         } else {
           this.messageBroker.publishMessage<
             User & { requiresOtp: boolean; otpType: OTPType }
@@ -162,7 +148,7 @@ class Login
               ...user,
               requiresOtp: true,
               otpType: OTPType.EMAIL,
-            },
+            } as User & { requiresOtp: boolean; otpType: OTPType },
           });
 
           const encrypted = encryptData({
@@ -188,15 +174,14 @@ class Login
 
     } else {
       if (data.loginType === LoginType.GOOGLE) {
-        session = await this.repository.createUserSession({
-          data: {
-            device: data.deviceName,
-            userId: user.id,
-            refreshToken: '',
-            expiresAt: new Date(),
-            location: data?.location
-          }
+        session = await this.sessionRepo.create({
+          device: data.deviceName,
+          userId: user.id,
+          refreshToken: '',
+          expiresAt: new Date(),
         })
+
+        await this.sessionRepo.save(session)
       } else {
         this.messageBroker.publishMessage<
           User & { requiresOtp: boolean; otpType: OTPType }
@@ -205,7 +190,7 @@ class Login
             ...user,
             requiresOtp: true,
             otpType: OTPType.EMAIL,
-          },
+          } as User & { requiresOtp: boolean; otpType: OTPType },
         });
         // in case there is no session, user needs otp verification
         const encrypted = encryptData({
@@ -254,17 +239,10 @@ class Login
     );
     session.expiresAt = refreshTokenExpiry;
 
-    await this.repository.updateUserSession({
-      where: {
-        id: session.id,
-      },
-      data: session,
-    });
+    await this.sessionRepo.update({ id: session.id }, session);
 
     this.messageBroker.publishMessage<User>(loggedIn, {
-      data: {
-        ...user,
-      },
+      data: user,
     });
 
     return new IReturnValue({
@@ -281,7 +259,13 @@ class Login
           expireAt: refreshTokenExpiry,
         },
       },
-    });
+    }) as IReturnValue<
+      | (User & TokenDto)
+      | {
+        requiresOtp: boolean;
+        token: string; // encrypted user object
+      }
+    >;
   }
 }
 

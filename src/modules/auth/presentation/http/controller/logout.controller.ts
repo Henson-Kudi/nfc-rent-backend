@@ -1,15 +1,18 @@
 import { IReturnValue } from "@/common/utils";
-import authService from "@/modules/auth/application/services/auth-service";
-import { IController } from "@/types/global";
+
+import { AuthService } from '@/modules/auth/application/services/auth.service';
+
 import { Request } from "express";
+import Container from "typedi";
 
 class LogoutController implements IController<Promise<IReturnValue<{ success: boolean }>>> {
     handle(request: Request): Promise<IReturnValue<{ success: boolean; }>> {
-        const deviceName = (request.headers?.['x-device-name'] || request?.deviceName) as string;
-        const location = (request?.headers?.['x-device-location'] || request?.deviceLocation) as string;
+        const authService = Container.get(AuthService)
+        const deviceName = (request.headers?.['x-device-name'] || '') as string;
+        const location = (request?.headers?.['x-device-location'] || '') as string;
         const userId = request?.headers?.['user-id'] as string;
 
-        return authService.logout.execute({
+        return authService.logout({
             ...request.body,
             userId,
             location,

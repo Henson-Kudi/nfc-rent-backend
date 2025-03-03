@@ -2,8 +2,14 @@ import bcrypt from 'bcrypt';
 import { AppError, passwordRegex } from '@/common/utils';
 import IPasswordManager from '@/modules/auth/application/providers/passwordManager';
 import { ResponseCodes } from '@/common/enums';
+import { Service, Token } from 'typedi';
 
-class PasswordManager implements IPasswordManager {
+export const PasswordManagerToken = new Token<IPasswordManager>()
+@Service({
+  id: PasswordManagerToken,
+  global: true
+})
+export class PasswordManager implements IPasswordManager {
   private readonly saltRounds: number = 12;
   private passwordRetryCounts = 10;
 
@@ -49,7 +55,3 @@ class PasswordManager implements IPasswordManager {
     return passwordRegex.test(password);
   }
 }
-
-const passwordManager = new PasswordManager();
-
-export default passwordManager;

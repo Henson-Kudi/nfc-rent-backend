@@ -1,14 +1,15 @@
-import { IReturnValue } from '@/common/utils';
 import { Request } from 'express';
-import authService from '@/modules/auth/application/services/auth-service';
-import { IController } from '@/types/global';
+import { IReturnValue } from '@/common/utils';
+
+import { AuthService } from '@/modules/auth/application/services/auth.service';
+import Container from 'typedi';
 
 class RegisterUserController
   implements
-    IController<Promise<IReturnValue<{ requiresOtp: boolean; token: string }>>>
-{
+  IController<Promise<IReturnValue<{ requiresOtp: boolean; token: string }>>> {
   handle(request: Request) {
-    return authService.register.execute(request.body);
+    const authService = Container.get(AuthService)
+    return authService.register(request.body);
   }
 }
 

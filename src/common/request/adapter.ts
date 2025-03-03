@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
 import { ResponseCodes } from '../enums';
-import { IController } from '@/types/global';
 
 function requestHandler<Output>(
   controller: IController<Output>

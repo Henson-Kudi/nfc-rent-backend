@@ -1,15 +1,11 @@
-import { SupportedLocales } from '@/types/global';
-import { NotificationTemplate } from '@prisma/client';
 import ITemplatesRepository from '../../application/repositories/templates-repository';
-import { getDefaultPrismaClient } from '@/common/database';
 
 class TemplatesRepository implements ITemplatesRepository {
-  private readonly db = getDefaultPrismaClient();
 
   async getTemplateBySlug(
     slug: string,
     locale?: SupportedLocales
-  ): Promise<NotificationTemplate | null> {
+  ): Promise<any | null> {
     return {
       content: 'Your one time otp code is {{otp}}',
       name: 'one time otp',

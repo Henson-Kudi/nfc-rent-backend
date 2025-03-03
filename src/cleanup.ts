@@ -1,5 +1,5 @@
 import { gracefulShutdownCache } from './common/cache/redis-cache';
-import { shutdownDbs } from './common/database';
+import { closeConnection } from './common/database';
 import { gracefulShutdownMessageBroker } from './common/message-broker';
 import logger from './common/utils/logger';
 
@@ -7,7 +7,7 @@ import logger from './common/utils/logger';
 export async function cleanup() {
   logger.info('Shutting down gracefully...');
   // Disconnect from databases
-  shutdownDbs();
+  closeConnection();
   // Disconnect from cache
   gracefulShutdownCache();
   // Disconnect from message broker

@@ -1,37 +1,28 @@
 import { AppError, IReturnValue } from '@/common/utils';
 import { ChangePasswordDto } from '@/modules/auth/domain/dtos';
-import { IMessageBroker, IUseCase } from '@/types/global';
-import IAuthUserRepository from '../repositories/auth';
 import IPasswordManager from '../providers/passwordManager';
 import { ResponseCodes } from '@/common/enums';
 import logger from '@/common/utils/logger';
 import { passwordChanged } from '../../utils/messageTopics.json';
+import { UserRepository } from '../../infrastructure/repositories/user.repository';
 
 class ChangePassword
-  implements IUseCase<[ChangePasswordDto], IReturnValue<{ success: boolean }>>
-{
-  private readonly repository: IAuthUserRepository;
-  private readonly passwordManager: IPasswordManager;
-  private readonly messageBroker: IMessageBroker;
+  implements IUseCase<[ChangePasswordData], IReturnValue<{ success: boolean }>> {
 
   constructor(
-    repo: IAuthUserRepository,
-    passwordManager: IPasswordManager,
-    messageBroker: IMessageBroker
-  ) {
-    this.repository = repo;
-    this.passwordManager = passwordManager;
-    this.messageBroker = messageBroker;
-  }
+    private readonly repository: UserRepository,
+    private readonly passwordManager: IPasswordManager,
+    private readonly messageBroker: IMessageBroker
+  ) { }
 
   async execute(
-    data: ChangePasswordDto
+    data: ChangePasswordData
   ): Promise<IReturnValue<{ success: boolean }>> {
-    data = new ChangePasswordDto(data);
+    const input = new ChangePasswordDto(data);
 
-    await data.validate();
+    await input.validate();
 
-    let user = await this.repository.findById(data.userId);
+    let user = await this.repository.findOneBy({ id: data.userId });
 
     if (!user || !user.isActive || user.isDeleted) {
       throw new AppError({
@@ -72,11 +63,8 @@ class ChangePassword
 
     user.password = newPassword;
 
-    await this.repository.updateUser({
-      where: { id: user.id },
-      data: {
-        password: newPassword,
-      },
+    await this.repository.update({ id: user.id }, {
+      password: newPassword,
     });
 
     // Publish password changed event

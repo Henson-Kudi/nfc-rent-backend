@@ -1,18 +1,16 @@
-import { User, LoginType } from '@prisma/client';
-import { DeFaultRoles, ResponseCodes } from '@/common/enums';
+import { LoginType, ResponseCodes } from '@/common/enums';
 import { AppError } from '@/common/utils';
 import { LoginDto } from '@/modules/auth/domain/dtos';
-import IAuthUserRepository from '../repositories/auth';
 import { OAuth2Client } from 'google-auth-library';
 import envConf from '@/config/env.conf';
-import { IMessageBroker } from '@/types/global';
+import logger from '@/common/utils/logger';
 import { userRegistered } from '../../utils/messageTopics.json'
-import slugify from '@/common/utils/slugify';
-import { DefaultOrganisationName } from '../../../../common/constants';
+import { User } from '@/common/entities';
+import { UserRepository } from '../../infrastructure/repositories/user.repository';
 
 export default async function googleLogin(
   data: LoginDto,
-  repo: IAuthUserRepository,
+  repo: UserRepository,
   authClient: OAuth2Client,
   messageBroker: IMessageBroker
 ): Promise<User> {
@@ -38,91 +36,41 @@ export default async function googleLogin(
     });
   }
 
-  let user = await repo.findByEmail(payload.email, {
-    include: {
-      collaborations: {
-        include: {
-          organisation: true
-        }
-      }
-    }
-  });
+  let user = await repo.findOne({ where: { email: payload.email } });
 
   // If no user, create a new user
   if (!user) {
-    let newuser = await repo.createUser({
-      data: {
-        email: payload.email,
-        emailVerified: payload.email_verified || false,
-        loginType: LoginType.GOOGLE,
-        phone: '',
-        phoneVerified: false,
-        googleId: payload.sub,
-        isActive: true,
-        photo: payload.picture,
-        firstName: payload?.family_name || payload?.name || 'No FN',
-        lastName: payload?.given_name || 'No LN',
-      }
-    });
+    user = (repo.create({
+      email: payload.email.toLowerCase(),
+      emailVerified: true,
+      fullName: payload?.name || `${payload?.family_name} ${payload?.given_name}`.trim() || 'No Name',
+      googleId: payload.sub,
+      phone: null,
+      phoneVerified: false,
+      isActive: true,
+      loginType: LoginType.GOOGLE,
+      photo: payload.picture,
+      mfaEnabled: false,
+    } as any))[0];
+
+    await repo.save(user)
 
 
-    if (!newuser) {
+    if (!user) {
       throw new AppError({
         statusCode: ResponseCodes.BadRequest,
         message: 'Failed to login with token',
       });
     }
 
-    // Create default organisation for this user
-    const orgName = DefaultOrganisationName
-
-    newuser = await repo.updateUser({
-      where: { id: newuser.id },
-      data: {
-        organisations: {
-          create: {
-            name: orgName,
-            nameSlug: slugify(orgName),
-            collaborators: {
-              create: {
-                collaboratorId: newuser.id,
-                roles: [DeFaultRoles.OWNER],
-              }
-            }
-
-          }
-        }
-      },
-      include: {
-        collaborations: {
-          include: {
-            organisation: true
-          }
-        }
-      }
-    }) as User
-
-    user = newuser;
-  }
-
-
-  // Because user is a google user, if their email is verified, we just verify our user's email as well since we're now sure the user can receive emails.
-  user = (await repo.updateUser({
-    where: { id: user.id },
-    data: {
-      emailVerified: true,
-      googleId: payload.sub,
-      loginType: LoginType.GOOGLE,
-      photo: user?.photo || payload.picture //maintain current photo (if any) or use google photo
-    },
-    include: {
-      collaborations: {
-        include: {
-          organisation: true
-        }
-      }
+    try {
+      await messageBroker.publishMessage(userRegistered, {
+        data: user,
+      });
+    } catch (err) {
+      logger.error(`Failed to publish user created message`, err);
     }
-  })) as User;
+  }
 
   return user;
 }

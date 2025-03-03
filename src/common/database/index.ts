@@ -1,79 +1,82 @@
-import redisCache from '../cache/redis-cache';
-import { MemoryCache } from '../cache/memory-cache';
-import logger from '../utils/logger';
-import { PrismaClient } from '@prisma/client';
+import { DataSource } from "typeorm";
+import envConf from "@/config/env.conf";
+import logger from "../utils/logger";
+import { runCommand } from "@/scripts/migration";
+import Container from "typedi";
 
-const defaultClientName = 'default-prisma-client'
-
-// Define LRU cache options for prisma clients. This cache will store up to 50 Prisma clients with a 20-minutes TTL. Since this is multi-tenant, we need to ensure that we don't cache too many clients and that we don't keep them in memory for too long.
-const prismaClients = new MemoryCache<string, PrismaClient>({
-  max: 50, // Maximum number of Prisma clients to cache (50 vendors/tenants)
-  ttl: 1000 * 60 * 20, // Time-to-live: 20 minutes
-  dispose: async (client, vendorId) => {
-    logger.info(`Disconnecting from database for vendor: ${vendorId}`);
-    await client.$disconnect(); // Gracefully disconnect PrismaClient
-  },
+// 1. Create admin connection to default 'postgres' DB
+export const dataSource = new DataSource({
+  url: `${envConf.DATABASE_URL}`,
+  type: "postgres",
+  entities: [`${envConf.rootDir}/src/common/entities/**/*.entity.{ts,js}`], // Since we're using share entity, all entities should be created in common/entities directory
+  migrations: [`${envConf.rootDir}/src/migrations/*{.ts,.js}`],
+  synchronize: false,
+  logging: envConf.NODE_ENV !== 'production'
 });
 
-// Function to get Prisma client for a vendor
-async function getPrismaClient(vendorId: string): Promise<PrismaClient> {
-  if (prismaClients.has(vendorId)) {
-    return prismaClients.get(vendorId)!; // Return cached client if exists
+
+const initializeDb = async () => {
+  if (!dataSource.isInitialized) {
+    // Initialise db
+    logger.info('Initialising database')
+    await dataSource.initialize()
+    // Initialise datasource dependency for injection
   }
 
-  // Fetch DB URL from Redis
-  const dbUrl = await redisCache.get<string>(`vendor:${vendorId}:dbUrl`);
-  if (!dbUrl) {
-    throw new Error(`Database URL not found for vendor: ${vendorId}`);
-  }
+  return dataSource
+}
 
-  // Create a new Prisma client
-  const prisma = new PrismaClient({
-    datasources: { db: { url: dbUrl } },
+async function generateFreshMigrations() {
+  try {
+    // Generate a new single migration file
+    logger.info("📜 Generating a fresh migration for tenant...");
+
+    await runCommand(`npx ts-node -r tsconfig-paths/register node_modules/typeorm/cli.js migration:generate src/migrations/LatestSchema -d src/common/database/index.ts`);
+
+    console.log("✅ All migrations generated successfully!");
+  } catch (error) {
+    console.error("❌ Migration generation failed!", error);
+    throw error
+  }
+}
+
+const runMigrations = async () => {
+  // Generate fresh migrations. generate migration files before initialising datasource. Because database initialisation scans migration folder, cache the current migrations to run. So if we initialise migration before generating migration files, migration will not run.
+  await generateFreshMigrations()
+
+  // We want to use a different datasource instance because if the existing instance is alsready initialised, a different migration is gonna be ran. We want to avoid that
+  const dataSource = new DataSource({
+    url: `${envConf.DATABASE_URL}`,
+    type: "postgres",
+    entities: [`${envConf.rootDir}/src/common/entities/**/*.entity.{ts,js}`], // Since we're using share entity, all entities should be created in common/entities directory
+    migrations: [`${envConf.rootDir}/src/migrations/*{.ts,.js}`],
+    synchronize: false,
+    logging: envConf.NODE_ENV !== 'production'
   });
 
-  // Cache the new Prisma client
-  prismaClients.set(vendorId, prisma);
-
-  return prisma;
-}
-
-function getDefaultPrismaClient(): PrismaClient {
-
-  if (prismaClients.has(defaultClientName)) {
-    return prismaClients.get(defaultClientName) as PrismaClient
-  }
-
-  const newClient = new PrismaClient()
-
-  prismaClients.set(defaultClientName, newClient)
-
-  return newClient
-}
-
-// Add connection metadata to Redis for a vendor
-async function addVendorToRedis(vendorId: string, dbUrl: string) {
-  await redisCache.set(`vendor:${vendorId}:dbUrl`, dbUrl, 60 * 60 * 24); // Set with 24-hour expiry
-}
-
-async function shutdownDbs() {
-  logger.info('Disconnecting from databases...');
   try {
-    for (const client of prismaClients.values()) {
-      try {
-        await client.$disconnect();
-      } catch (error) {
-        logger.error('Error disconnecting Prisma client:', error);
-      }
-    }
-  } catch (err) {
-    logger.error('Error disconnecting Prisma clients:', err);
+    // Initialise datasource
+    await dataSource.initialize()
+
+    // Run migrations
+    logger.info('Running migrations')
+    await dataSource.runMigrations()
+    logger.info('Finished running migrations')
+  } catch (error) {
+    logger.error('Failed to run migrations', error)
+  } finally {
+    // Destroy datasource once migration is completed (either successfully or not)
+    await dataSource.destroy()
+    logger.info('Datasource destroyed')
   }
 }
+
+
+const closeConnection = () => dataSource.destroy()
 
 export {
-  getPrismaClient,
-  addVendorToRedis,
-  shutdownDbs,
-  getDefaultPrismaClient,
-};
+  closeConnection,
+  initializeDb,
+  generateFreshMigrations,
+  runMigrations
+}

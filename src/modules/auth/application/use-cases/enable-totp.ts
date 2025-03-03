@@ -1,32 +1,27 @@
-import { TOTPStatus } from '@prisma/client';
 import { AppError, IReturnValue } from '@/common/utils';
-import { IUseCase } from '@/types/global';
-import IAuthUserRepository from '../repositories/auth';
 import TOTPMFA from '../providers/totp';
-import { ResponseCodes } from '@/common/enums';
+import { ResponseCodes, TOTPStatus } from '@/common/enums';
 import { GeneratedSecret } from 'speakeasy';
+import { UserRepository } from '../../infrastructure/repositories/user.repository';
 
 class EnableTOTP
   implements
-    IUseCase<
-      [string],
-      IReturnValue<GeneratedSecret & { status: TOTPStatus; enabled: boolean }>
-    >
-{
-  private readonly repository: IAuthUserRepository;
-  private readonly totpProvider: TOTPMFA;
+  IUseCase<
+    [string],
+    IReturnValue<GeneratedSecret & { status: TOTPStatus; enabled: boolean }>
+  > {
 
-  constructor(repo: IAuthUserRepository, totpProvider: TOTPMFA) {
-    this.repository = repo;
-    this.totpProvider = totpProvider;
-  }
+  constructor(
+    private readonly repository: UserRepository,
+    private readonly totpProvider: TOTPMFA
+  ) { }
 
   async execute(
     userId: string
   ): Promise<
     IReturnValue<GeneratedSecret & { status: TOTPStatus; enabled: boolean }>
   > {
-    const user = await this.repository.findById(userId);
+    const user = await this.repository.findOneBy({ id: userId });
 
     if (!user) {
       throw new AppError({
@@ -49,10 +44,7 @@ class EnableTOTP
     user.totpStatus = TOTPStatus.REQUIRES_VERIFICATION;
 
     // update user
-    await this.repository.updateUser({
-      where: { id: user.id },
-      data: user,
-    });
+    await this.repository.update({ id: user.id }, user);
 
     return new IReturnValue({
       success: true,

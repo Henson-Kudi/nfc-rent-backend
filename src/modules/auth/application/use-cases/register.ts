@@ -1,57 +1,57 @@
-import { DeFaultRoles, ResponseCodes } from '../../../../common/enums';
+import { LoginType, ResponseCodes } from '../../../../common/enums';
 import { RegisterUserDto } from '../../domain/dtos';
 import IPasswordManager from '../providers/passwordManager';
-import IAuthUserRepository from '../repositories/auth';
 import { userRegistered } from '../../utils/messageTopics.json';
 import logger from '../../../../common/utils/logger';
 import { AppError, IReturnValue } from '../../../../common/utils';
-import { IMessageBroker, IUseCase } from '@/types/global';
-import { LoginType, User } from '@prisma/client';
 import { encryptData } from '@/common/utils/encryption';
 import { OTPVERIFICATIONTYPES } from '../../domain/enums';
-import { UserWithVerificationType } from '../../types';
-import { DefaultOrganisationName } from '../../../../common/constants';
+import { UserRepository } from '../../infrastructure/repositories/user.repository';
+import { RoleRepository } from '../../infrastructure/repositories/role.repository';
 import slugify from '@/common/utils/slugify';
-import { ORGANISATION_MODULE_NAMES } from '@/common/utils/randomNumber';
+import { Role } from '@/common/entities';
+import { In } from 'typeorm';
+import { instanceToPlain } from 'class-transformer';
+import { User } from '@prisma/client';
+
 
 class RegisterUseCase
   implements
   IUseCase<
-    [RegisterUserDto],
+    [RegisterUserData],
     IReturnValue<{
       requiresOtp: boolean;
       token: string; // encrypted user object
     }>
   > {
-  private readonly userRepository: IAuthUserRepository;
-  private readonly passwordManager: IPasswordManager;
-  private readonly messageBroker: IMessageBroker;
 
   constructor(
-    userRepository: IAuthUserRepository,
-    passwordManager: IPasswordManager,
-    messageBroker: IMessageBroker
-  ) {
-    this.userRepository = userRepository;
-    this.passwordManager = passwordManager;
-    this.messageBroker = messageBroker;
-  }
+    private readonly userRepository: UserRepository,
+    private readonly roleRepository: RoleRepository,
+    private readonly passwordManager: IPasswordManager,
+    private readonly messageBroker: IMessageBroker,
+  ) { }
 
-  async execute(request: RegisterUserDto): Promise<
+  async execute(request: RegisterUserData): Promise<
     IReturnValue<{
       requiresOtp: boolean;
       token: string; // encrypted user object
     }>
   > {
-    request = new RegisterUserDto(request);
+    const data = new RegisterUserDto(request);
     // Validate request data
-    await request.validate();
+    await data.validate();
 
     // Fetch user by email or phone to ensure they do not exist already
-    const user = await this.userRepository.findByEmailOrPhone(
-      request.email,
-      request.phone
-    );
+    let user = await this.userRepository.findOneBy({
+      email: request.email
+    });
+
+    if (!user) {
+      user = await this.userRepository.findOneBy({
+        phone: request.phone
+      });
+    }
 
     // Ensure user does not exist by email or fone
     if (user) {
@@ -81,48 +81,35 @@ class RegisterUseCase
       });
     }
 
-    const { confirmPassword, ...rest } = request;
+    const { confirmPassword, roles, ...rest } = request;
 
-    const newUser = await this.userRepository.createUser({
-      data: {
-        ...rest,
-        password,
-        email: request.email.toLowerCase(),
-        loginType: LoginType.EMAIL,
-      },
-    }) as User;
-
-    // Create default organisation
-    const orgName = DefaultOrganisationName
-
-    await this.userRepository.updateUser({
-      where: { id: newUser.id },
-      data: {
-        organisations: {
-          create: {
-            name: orgName,
-            nameSlug: slugify(orgName),
-            collaborators: {
-              create: {
-                collaboratorId: newUser.id,
-                roles: [DeFaultRoles.OWNER]
-              }
-            },
-            modules: {
-              createMany: {
-                data: Object.values(ORGANISATION_MODULE_NAMES).map(val => ({
-                  name: val,
-                  nameSlug: slugify(val)
-                }))
-              }
-            }
-          }
-        }
-      }
+    // We need to attach default user role to this user if roles where not set in request
+    let userRoles: Role[] = await this.roleRepository.find({
+      where: { slug: slugify('USER') },
+      relations: ['permissions']
     })
 
-    const encData: UserWithVerificationType = {
-      ...(newUser),
+    // If any additional roles were passed, add it to user
+    if (roles?.length) {
+      userRoles = userRoles.concat(await this.roleRepository.find({
+        where: { id: In(roles) },
+        relations: ['permissions']
+      }))
+    }
+
+    let newUser = this.userRepository.create({
+      ...rest,
+      password,
+      email: request.email.toLowerCase(),
+      loginType: LoginType.EMAIL,
+      roles: userRoles,
+      cachedPermissions: userRoles?.map(r => r.permissions?.map(p => p.identifier)).flat()
+    });
+
+    const savedUser = instanceToPlain(await this.userRepository.save(newUser)) as User
+
+    const encData = {
+      ...(savedUser),
       verificationType: OTPVERIFICATIONTYPES.EMAIL,
     };
 
@@ -133,7 +120,7 @@ class RegisterUseCase
     // Publish user created event for otp code to be sent for email verification
     try {
       await this.messageBroker.publishMessage(userRegistered, {
-        data: newUser,
+        data: savedUser,
       });
     } catch (err) {
       logger.error(`Failed to publish user created message`, err);

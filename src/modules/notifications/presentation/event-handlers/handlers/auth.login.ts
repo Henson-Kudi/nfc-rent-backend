@@ -1,11 +1,8 @@
 import { OTPType } from '@/common/enums';
 import logger from '@/common/utils/logger';
 import generateRandomNumber from '@/common/utils/randomNumber';
-import passwordManager from '@/modules/auth/infrastructure/providers/password-manager';
 import notificationsService from '@/modules/notifications/application/services';
 import { SendNotificationDTO } from '@/modules/notifications/domain';
-import oTPRepository from '@/modules/notifications/infrastructure/repositories/otp-repository';
-import { MessageHandler } from '@/types/global';
 import { User } from '@prisma/client';
 import moment from 'moment';
 
@@ -14,7 +11,6 @@ type OneTimeOtpParams = {
 };
 
 const handleUserLoginMessage: MessageHandler = async (message, channel) => {
-  console.log(`Message: ${message}...... Channel: ${channel}`);
   // generate otp code
   // hash the code
   // save in db
@@ -43,18 +39,18 @@ const handleUserLoginMessage: MessageHandler = async (message, channel) => {
 
   if (user?.requiresOtp) {
     const otpCode = generateRandomNumber(6);
-    const hashedOtp = await passwordManager.encryptPassword(otpCode);
-    const otpExpireAt = moment().add(15, 'minutes').toDate();
+    // const hashedOtp = await passwordManager.encryptPassword(otpCode);
+    // const otpExpireAt = moment().add(15, 'minutes').toDate();
 
 
     try {
-      await oTPRepository.create({
-        data: {
-          expireAt: otpExpireAt,
-          token: hashedOtp,
-          userId: user.id,
-        },
-      });
+      // await oTPRepository.create({
+      //   data: {
+      //     expireAt: otpExpireAt,
+      //     token: hashedOtp,
+      //     userId: user.id,
+      //   },
+      // });
       await notificationsService.sendNotification.execute<OneTimeOtpParams>(
         new SendNotificationDTO(
           'EMAIL',

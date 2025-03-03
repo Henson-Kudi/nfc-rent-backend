@@ -1,35 +1,29 @@
 import { AppError, IReturnValue } from '@/common/utils';
-import { ITokenManager, IUseCase } from '@/types/global';
-import IAuthUserRepository from '../repositories/auth';
 import IPasswordManager from '../providers/passwordManager';
-import { TOTPStatus, User } from '@prisma/client';
 import { OTPVerificationDto, TokenDto } from '@/modules/auth/domain/dtos';
-import { ResponseCodes } from '@/common/enums';
+import { ResponseCodes, TOTPStatus } from '@/common/enums';
 import TOTPMFA from '../providers/totp';
 import { decryptData } from '@/common/utils/encryption';
 import { OTPVERIFICATIONTYPES } from '../../domain/enums';
 import { UserWithVerificationType } from '../../types';
+import { User } from '@/common/entities';
+import { UserRepository } from '../../infrastructure/repositories/user.repository';
+import { SessionRepository } from '../../infrastructure/repositories/session.repository';
+import { OTPRepository } from '../../infrastructure/repositories/otp.repository';
+import { instanceToPlain } from 'class-transformer';
 
-class VerifyOtp implements IUseCase<[OTPVerificationDto], IReturnValue<User & TokenDto>> {
-  private readonly repository: IAuthUserRepository;
-  private readonly passwordManager: IPasswordManager;
-  private readonly totpProvider: TOTPMFA;
-  private readonly tokenManager: ITokenManager;
-
+class VerifyOtp implements IUseCase<[OTPValidationData], IReturnValue<User & TokenDto>> {
   constructor(
-    repo: IAuthUserRepository,
-    passwordManager: IPasswordManager,
-    totpProvider: TOTPMFA,
-    tokenManager: ITokenManager
-  ) {
-    this.repository = repo;
-    this.passwordManager = passwordManager;
-    this.totpProvider = totpProvider;
-    this.tokenManager = tokenManager;
-  }
+    private readonly repository: UserRepository,
+    private readonly sessionRepo: SessionRepository,
+    private readonly otpRepo: OTPRepository,
+    private readonly passwordManager: IPasswordManager,
+    private readonly totpProvider: TOTPMFA,
+    private readonly tokenManager: ITokenManager,
+  ) { }
 
   async execute(
-    params: OTPVerificationDto
+    params: OTPValidationData
   ): Promise<IReturnValue<User & TokenDto>> {
     const data = new OTPVerificationDto(params);
 
@@ -41,7 +35,9 @@ class VerifyOtp implements IUseCase<[OTPVerificationDto], IReturnValue<User & To
     if (validData.token) {
       const decrypted = decryptData<UserWithVerificationType>(validData.token);
 
-      const otp = await this.repository.getOtpCodeByUserId(decrypted.id);
+      const otp = await this.otpRepo.findOneBy({
+        userId: decrypted.id
+      });
 
       if (!otp || !validData.token) {
         throw new AppError({
@@ -62,15 +58,7 @@ class VerifyOtp implements IUseCase<[OTPVerificationDto], IReturnValue<User & To
         });
       }
 
-      user = await this.repository.findById(decrypted.id, {
-        include: {
-          collaborations: {
-            include: {
-              organisation: true
-            }
-          }
-        }
-      });
+      user = await this.repository.findOneBy({ id: decrypted.id });
 
       if (!user) {
         throw new AppError({
@@ -84,45 +72,19 @@ class VerifyOtp implements IUseCase<[OTPVerificationDto], IReturnValue<User & To
         decrypted.verificationType === OTPVERIFICATIONTYPES.EMAIL &&
         !user.emailVerified
       ) {
-        user = await this.repository.updateUser({
-          where: { id: decrypted.id },
-          data: { emailVerified: true },
-          include: {
-            collaborations: {
-              include: {
-                organisation: true
-              }
-            }
-          }
-        });
+        await this.repository.update({ id: decrypted.id }, { emailVerified: true });
+        user.emailVerified = true
       } else if (
         decrypted.verificationType === OTPVERIFICATIONTYPES.PHONE &&
         !user.phoneVerified
       ) {
-        user = await this.repository.updateUser({
-          where: { id: decrypted.id },
-          data: { phoneVerified: true },
-          include: {
-            collaborations: {
-              include: {
-                organisation: true
-              }
-            }
-          }
-        });
+        await this.repository.update({ id: decrypted.id }, { phoneVerified: true });
+        user.phoneVerified = true
       }
 
-      await this.repository.deleteOtpTokens({ where: { id: otp.id } });
+      await this.otpRepo.delete({ id: otp.id });
     } else if (validData.userId) {
-      let User = await this.repository.findById(validData.userId, {
-        include: {
-          collaborations: {
-            include: {
-              organisation: true
-            }
-          }
-        }
-      });
+      let User = await this.repository.findOneBy({ id: validData.userId });
 
       if (!User || !User.mfaEnabled || !User?.totpSecret) {
         throw new AppError({
@@ -144,19 +106,8 @@ class VerifyOtp implements IUseCase<[OTPVerificationDto], IReturnValue<User & To
       }
 
       if (User.totpStatus === TOTPStatus.REQUIRES_VERIFICATION) {
-        User = await this.repository.updateUser({
-          where: { id: User.id },
-          data: {
-            totpStatus: TOTPStatus.ENABLED,
-          },
-          include: {
-            collaborations: {
-              include: {
-                organisation: true
-              }
-            }
-          }
-        });
+        await this.repository.update({ id: User.id }, { totpStatus: TOTPStatus.ENABLED });
+        User.totpStatus = TOTPStatus.ENABLED
       }
 
       user = User;
@@ -169,14 +120,12 @@ class VerifyOtp implements IUseCase<[OTPVerificationDto], IReturnValue<User & To
       });
     }
 
+    user = instanceToPlain(user) as User
+
     // If otp is valid then we're good to go and sign a session
-    let session = await this.repository.findUserSession({
-      where: {
-        userId_device: {
-          userId: user.id,
-          device: validData.deviceName,
-        },
-      },
+    let session = await this.sessionRepo.findOneBy({
+      userId: user.id,
+      device: validData.deviceName,
     });
 
     let isNewSession = false;
@@ -204,17 +153,17 @@ class VerifyOtp implements IUseCase<[OTPVerificationDto], IReturnValue<User & To
     );
 
     if (!session) {
-      session = await this.repository.createUserSession({
-        data: {
-          device: validData.deviceName,
-          location: validData.location,
-          userId: user.id,
-          refreshToken: refreshToken,
-          expiresAt: refreshTokenExpiry,
-          isActive: true,
-          lastActiveAt: new Date(),
-        },
+      session = this.sessionRepo.create({
+        device: validData.deviceName,
+        location: validData.location,
+        userId: user.id,
+        refreshToken: refreshToken,
+        expiresAt: refreshTokenExpiry,
+        isActive: true,
+        lastActiveAt: new Date(),
       });
+
+      await this.sessionRepo.save(session)
 
       isNewSession = true;
     } else {
@@ -224,10 +173,7 @@ class VerifyOtp implements IUseCase<[OTPVerificationDto], IReturnValue<User & To
     }
 
     if (!isNewSession) {
-      session = await this.repository.updateUserSession({
-        where: { id: session.id },
-        data: session,
-      });
+      await this.sessionRepo.update({ id: session.id }, session);
     }
 
     return new IReturnValue({
@@ -244,7 +190,7 @@ class VerifyOtp implements IUseCase<[OTPVerificationDto], IReturnValue<User & To
           expireAt: refreshTokenExpiry,
         },
       },
-    });
+    }) as IReturnValue<User & TokenDto>;
   }
 }
 

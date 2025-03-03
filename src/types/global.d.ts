@@ -1,7 +1,7 @@
-import { JwtPayload as Payload, SignOptions } from 'jsonwebtoken';
-import { Request } from 'express';
+// import { JwtPayload as Payload, SignOptions } from 'jsonwebtoken';
+// import { Request } from 'express';
 
-type SupportedLocales = 'en';
+type SupportedLocales = 'en' | 'fr' | 'es' | 'zh' | 'it' | 'ar' | 'ru';
 
 type PaginationOptions = {
   page?: number
@@ -12,29 +12,17 @@ interface IUseCase<Input extends unknown[], Output> {
   execute(...args: Input): Promise<Output>;
 }
 
-interface IController<Output> {
-  handle(request: Request): Output;
-}
-
-interface JwtPayload extends Payload {
-  userId: string;
-  roles?: string[];
-  groups?: string[];
-}
-
 type JwtType = 'ACCESS_TOKEN' | 'REFRESH_TOKEN';
 
-interface ITokenManager {
-  generateToken(
-    type: JwtType,
-    payload: JwtPayload,
-    options?: SignOptions
-  ): string;
+type ModuleNode = {
+  name: string;
+  path: string;
+  children?: ModuleTree;
+};
 
-  verifyJwtToken(type: JwtType, token: string): JwtPayload;
-
-  decodeJwtToken(token: string): JwtPayload;
-}
+type ModuleTree = {
+  [key: string]: ModuleNode
+};
 
 interface MessageHandler {
   (message: string, channel: string): Promise<void>;
@@ -52,14 +40,67 @@ interface IMessageBroker {
   subscribe(channel: string, callback: MessageHandler): Promise<void>;
   disconnect(): Promise<void>;
   quit(): Promise<void>;
-  connect(): void;
+  connect(): Promise<void>;
 }
 
-// google provider
-import { OAuth2Client } from 'google-auth-library';
+// Authentication modules
+type OTPValidationData = {
+  token?: string;
+  deviceName: string;
+  userId?: string;
+  email?: string;
+  location: string;
+  code: string;
+  type: string
+  [key: string]: unknown;
+};
 
-export default interface IGoogleServicesManager {
-  oAuthClient: OAuth2Client;
+type RegisterUserData = {
+  fullName: string;
+  email: string;
+  phone: string;
+  photo?: string;
+  password: string;
+  confirmPassword: string;
+  roles?: string[]
+  [key: string]: unknown;
+};
+
+type LoginData = {
+  email?: string;
+  password?: string;
+  loginType: LoginType;
+  idToken?: string; // google login token
+  deviceName: string;
+  location: string;
+  [key: string]: unknown;
+};
+
+type LogoutData = {
+  userId: string;
+  deviceName: string;
+  location: string;
+  [key: string]: unknown;
+};
+
+type RequestOTPData = {
+  email?: string;
+  userId?: string;
+  phone?: string;
+  type: 'email' | 'phone';
+};
+
+type ChangePasswordData = {
+  oldPassword?: string;
+  newPassword: string;
+  userId: string;
+  confirmNewPassword: string;
+};
+
+// User module types
+interface UpdateUserData {
+  fullName?: string
+  photo?: string
 }
 
 declare namespace NodeJS {
@@ -82,11 +123,10 @@ declare namespace NodeJS {
   }
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      deviceName?: string;
-      deviceLocation?: string;
-    }
-  }
+// Entities
+interface ITranslationEntity<T> {
+  id: string;
+  locale: string;
+  parent: T; // Generic parent reference (type only)
 }
+

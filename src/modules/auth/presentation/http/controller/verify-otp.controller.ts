@@ -1,21 +1,18 @@
-import { User } from '@prisma/client';
-import { OTPType } from '@/common/enums';
 import { IReturnValue } from '@/common/utils';
 import { Request } from 'express';
-import authService from '@/modules/auth/application/services/auth-service';
+import { AuthService } from '@/modules/auth/application/services/auth.service';
 import { TokenDto } from '@/modules/auth/domain/dtos';
-import { IController } from '@/types/global';
-import { decryptData } from '@/common/utils/encryption';
+import { User } from '@/common/entities';
+import Container from 'typedi';
 
 class VerifyOTPController
-  implements IController<Promise<IReturnValue<User & TokenDto>>>
-{
+  implements IController<Promise<IReturnValue<User & TokenDto>>> {
   handle(request: Request) {
-    console.log(request.body);
+    const authService = Container.get(AuthService)
 
-    const deviceName = request.deviceName;
-    const location = request.deviceLocation;
-    return authService.verifyOtp.execute({
+    const deviceName = request?.headers?.['x-device-name'];
+    const location = request?.headers?.['x-device-location'];
+    return authService.verifyOtp({
       ...request.body,
       location,
       deviceName,
