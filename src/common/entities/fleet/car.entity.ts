@@ -1,176 +1,214 @@
-import { Column, Entity, ManyToOne, OneToMany, ManyToMany, JoinTable, JoinColumn } from "typeorm";
-import { Base } from "../base";
-import { CarBrand, CarFeature, CarModel, RentalPricing, CarMedia, CarDocument, CarOwnershipDetail, CarHistoryRecord } from "..";
-import { CarCategory, CarCondition, CarInspectionStatus, CarListingType, CarStatus, FuelType, TransmissionType } from "@/common/enums";
-import { TranslationEntity } from "../translation-base";
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
+  JoinColumn,
+} from 'typeorm';
+import { Base } from '../base';
+import {
+  CarBrand,
+  CarFeature,
+  CarModel,
+  RentalPricing,
+  CarMedia,
+  CarDocument,
+  CarOwnershipDetail,
+  CarHistoryRecord,
+  Addon,
+  Booking
+} from '..';
+import {
+  CarCategory,
+  CarCondition,
+  CarInspectionStatus,
+  CarListingType,
+  CarStatus,
+  FuelType,
+  MediaType,
+  TransmissionType,
+} from '@/common/enums';
+import { TranslationEntity } from '../translation-base';
 
 @Entity()
 export class Car extends Base {
-    @Column({ unique: true })
-    slug!: string; // slugified car name in english
+  @Column({ unique: true })
+  slug!: string; // slugified car name in english
 
-    @Column({ unique: true })
-    vin!: string;
+  @Column({ unique: true })
+  vin!: string;
 
-    @Column({ nullable: true })
-    blockchainId?: string; // for blockchain integration
+  @Column({ nullable: true })
+  blockchainId?: string; // for blockchain integration
 
-    @Column()
-    year!: number;
+  @Column()
+  year!: number;
 
-    @Column({
-        type: 'enum',
-        enum: CarCategory,
-    })
-    category!: CarCategory;
+  @Column({
+    type: 'enum',
+    enum: CarCategory,
+  })
+  category!: CarCategory;
 
-    @Column({
-        type: 'enum',
-        enum: FuelType,
-    })
-    fuelType!: FuelType;
+  @Column({
+    type: 'enum',
+    enum: FuelType,
+  })
+  fuelType!: FuelType;
 
-    @Column({
-        type: 'enum',
-        enum: TransmissionType,
-    })
-    transmission!: TransmissionType;
+  @Column({
+    type: 'enum',
+    enum: TransmissionType,
+  })
+  transmission!: TransmissionType;
 
-    @Column()
-    doors!: number;
+  @Column()
+  doors!: number;
 
-    @Column()
-    seats!: number;
+  @Column()
+  seats!: number;
 
-    @Column('jsonb')
-    engineSpecs!: {
-        type: string;
-        horsepower: number;
-        torque: number;
-        displacement?: number;
-        batteryCapacity?: number;
-        range?: number;
-        acceleration: number;
-        topSpeed: number;
-    };
+  @Column('jsonb')
+  engineSpecs!: {
+    type: string;
+    horsepower: number;
+    torque: number;
+    displacement?: number;
+    batteryCapacity?: number;
+    range?: number;
+    acceleration: number;
+    topSpeed: number;
+  };
 
-    @Column('jsonb')
-    dimensions!: {
-        length: number;
-        width: number;
-        height: number;
-        weight: number;
-        cargoCapacity: number;
-    };
+  @Column('jsonb')
+  dimensions!: {
+    length: number;
+    width: number;
+    height: number;
+    weight: number;
+    cargoCapacity: number;
+  };
 
-    @OneToMany(() => CarMedia, mediaItem => mediaItem.car)
-    images!: CarMedia[];
+  @Column({ nullable: true })
+  metaverseAssetId?: string; // during blockchain integration
 
-    @OneToMany(() => CarMedia, mediaItem => mediaItem.car)
-    videos!: CarMedia[];
+  @Column({
+    type: 'enum',
+    enum: CarStatus,
+    default: CarStatus.AVAILABLE,
+  })
+  currentStatus!: CarStatus;
 
-    @Column({ nullable: true })
-    virtualTourUrl?: string;
+  @Column({ type: 'simple-array', default: [CarListingType.FOR_RENT] })
+  listingType!: CarListingType[];
 
-    @Column({ nullable: true })
-    metaverseAssetId?: string; // during blockchain integration
+  @Column({ type: 'timestamp', nullable: true })
+  acquisitionDate?: Date;
 
-    @Column({
-        type: 'enum',
-        enum: CarStatus,
-        default: CarStatus.AVAILABLE
-    })
-    currentStatus!: CarStatus;
+  @Column()
+  mileage!: number;
 
-    @Column({ type: 'simple-array', default: [CarListingType.FOR_RENT] })
-    listingType!: CarListingType[];
+  @Column({
+    type: 'enum',
+    enum: CarCondition,
+    default: CarCondition.EXCELLENT,
+  })
+  condition!: CarCondition;
 
-    @Column({ type: 'timestamp', nullable: true })
-    acquisitionDate?: Date;
+  @Column({
+    type: 'enum',
+    enum: CarInspectionStatus,
+    default: CarInspectionStatus.PENDING,
+  })
+  inspectionStatus!: CarInspectionStatus;
 
-    @Column()
-    mileage!: number;
+  @Column({ type: 'timestamp', nullable: true })
+  lastInspectionDate?: Date;
 
-    @Column({
-        type: 'enum',
-        enum: CarCondition,
-        default: CarCondition.EXCELLENT
-    })
-    condition!: CarCondition;
+  @Column({ type: 'timestamp', nullable: true })
+  nextInspectionDueDate?: string;
 
-    @Column({
-        type: 'enum',
-        enum: CarInspectionStatus,
-        default: CarInspectionStatus.PENDING
-    })
-    inspectionStatus!: CarInspectionStatus;
+  // Relationships
+  @OneToMany(() => CarMedia, (mediaItem) => mediaItem.car)
+  media!: CarMedia[];
 
-    @Column({ type: 'timestamp', nullable: true })
-    lastInspectionDate?: Date;
+  @ManyToOne(() => CarBrand)
+  brand!: CarBrand;
 
-    @Column({ type: 'timestamp', nullable: true })
-    nextInspectionDueDate?: string;
+  @ManyToOne(() => CarModel)
+  model!: CarModel;
 
-    // Relationships
-    @ManyToOne(() => CarBrand)
-    brand!: CarBrand;
+  @ManyToMany(() => CarFeature)
+  @JoinTable()
+  features!: CarFeature[];
 
-    @ManyToOne(() => CarModel)
-    model!: CarModel;
+  @OneToMany(() => RentalPricing, (pricing) => pricing.car)
+  rentalPricings!: RentalPricing[];
 
-    @ManyToMany(() => CarFeature)
-    @JoinTable()
-    features!: CarFeature[];
+  @OneToMany(() => CarDocument, (doc) => doc.car)
+  documents!: CarDocument[];
 
-    @OneToMany(() => RentalPricing, pricing => pricing.car)
-    rentalPricings!: RentalPricing[];
+  @OneToMany(() => CarOwnershipDetail, (ownerDetail) => ownerDetail.car)
+  ownershipDetails!: CarOwnershipDetail[];
 
-    @OneToMany(() => CarDocument, doc => doc.car)
-    documents!: CarDocument[];
+  @OneToMany(() => CarHistoryRecord, (history) => history.car)
+  history!: CarHistoryRecord[];
 
-    @OneToMany(() => CarOwnershipDetail, ownerDetail => ownerDetail.car)
-    ownershipDetails!: CarOwnershipDetail[];
+  @OneToMany(() => CarTranslation, (translation) => translation.parent)
+  translations!: CarTranslation[];
 
-    @OneToMany(() => CarHistoryRecord, history => history.car)
-    history!: CarHistoryRecord[];
+  @OneToMany(() => Booking, (booking) => booking.car)
+  bookings!: Booking[];
 
-    @OneToMany(() => CarTranslation, translation => translation.parent)
-    translations!: CarTranslation[];
+  @ManyToMany(() => Addon, (addon) => addon.availableForCars)
+  availableAddons!: Addon[];
+
+  get images() {
+    return this.media.filter(itm => itm.type === MediaType.IMAGE)
+  }
+  get videos() {
+    return this.media.filter(itm => itm.type === MediaType.VIDEO)
+  }
+  get virtualTourMedia() {
+    return this.media.filter(itm => itm.type === MediaType.MODEL_3D)
+  }
 }
 
 @Entity()
 export class CarTranslation extends TranslationEntity<Car> {
-    @Column({ type: 'jsonb' })
-    color!: {
-        name: string,
-        code?: string
-    };
+  @Column({ type: 'jsonb' })
+  color!: {
+    name: string;
+    code?: string;
+  };
 
-    @Column({ type: 'jsonb' })
-    interiorColor!: {
-        name: string,
-        code?: string
-    };
+  @Column({ type: 'jsonb' })
+  interiorColor!: {
+    name: string;
+    code?: string;
+  };
 
-    @ManyToOne(() => Car, car => car.translations, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'parentId' })
-    parent!: Car;
+  @ManyToOne(() => Car, (car) => car.translations, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'parentId' })
+  parent!: Car;
 
-    @Column({})
-    name!: string
+  @Column({})
+  name!: string;
 
-    @Column({ nullable: true })
-    shortDescription?: string
+  @Column({ nullable: true })
+  shortDescription?: string;
 
-    @Column({ nullable: true })
-    description?: string
+  @Column({ nullable: true })
+  description?: string;
 
-    @Column({ nullable: true })
-    metaTitle?: string
+  @Column({ nullable: true })
+  metaTitle?: string;
 
-    @Column({ nullable: true })
-    metaDescription?: string
+  @Column({ nullable: true })
+  metaDescription?: string;
 
-    @Column({ nullable: true })
-    metaTags?: string
+  @Column({ nullable: true })
+  metaTags?: string;
 }

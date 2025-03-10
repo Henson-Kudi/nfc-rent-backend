@@ -4,7 +4,7 @@ import { LoginDto } from '@/modules/auth/domain/dtos';
 import { OAuth2Client } from 'google-auth-library';
 import envConf from '@/config/env.conf';
 import logger from '@/common/utils/logger';
-import { userRegistered } from '../../utils/messageTopics.json'
+import { userRegistered } from '../../utils/messageTopics.json';
 import { User } from '@/common/entities';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
 
@@ -40,10 +40,13 @@ export default async function googleLogin(
 
   // If no user, create a new user
   if (!user) {
-    user = (repo.create({
+    user = repo.create({
       email: payload.email.toLowerCase(),
       emailVerified: true,
-      fullName: payload?.name || `${payload?.family_name} ${payload?.given_name}`.trim() || 'No Name',
+      fullName:
+        payload?.name ||
+        `${payload?.family_name} ${payload?.given_name}`.trim() ||
+        'No Name',
       googleId: payload.sub,
       phone: null,
       phoneVerified: false,
@@ -51,10 +54,9 @@ export default async function googleLogin(
       loginType: LoginType.GOOGLE,
       photo: payload.picture,
       mfaEnabled: false,
-    } as any))[0];
+    } as any)[0];
 
-    await repo.save(user)
-
+    await repo.save(user);
 
     if (!user) {
       throw new AppError({

@@ -12,7 +12,7 @@ export enum ResponseCodes {
   GatewayTimeOut = 502,
   ServerDown = 503,
 
-  Success = 201,
+  Success = 200,
 }
 
 export enum SocialLoginTypes {
@@ -40,9 +40,9 @@ export enum OTPType {
 }
 
 export enum DeFaultRoles {
-  OWNER = "OWNER",
-  EDITOR = "EDITOR",
-  VIEWER = "VIEWER"
+  OWNER = 'OWNER',
+  EDITOR = 'EDITOR',
+  VIEWER = 'VIEWER',
 }
 
 export enum ShopState {
@@ -63,27 +63,27 @@ export enum ProductStatus {
   DRAFT = 'DRAFT',
   DELETED = 'DELETED',
   INACTIVE = 'INACTIVE',
-  ARCHIVED = 'ARCHIVED'
+  ARCHIVED = 'ARCHIVED',
 }
 
 export enum MediaType {
-  VIDEO = 'video',  // all video types (mp4, etc)
+  VIDEO = 'video', // all video types (mp4, etc)
   AUDIO = 'audio', // all audio categories (mp3, etc)
   IMAGE = 'image', //all categories of images (jpeg, png, webp, svg, gif, etc)
   PDF = 'pdf', // for pdfs only
   DOCUMENT = 'document', // for word documents
   MODEL_3D = 'model_3D',
-  OTHER = 'other' // for any other document type
+  OTHER = 'other', // for any other document type
 }
 
 export enum LoginType {
   EMAIL = 'EMAIL',
-  GOOGLE = 'GOOGLE'
+  GOOGLE = 'GOOGLE',
 }
 
 export enum TOTPStatus {
   ENABLED = 'ENABLED',
-  REQUIRES_VERIFICATION = 'REQUIRES_VERIFICATION'
+  REQUIRES_VERIFICATION = 'REQUIRES_VERIFICATION',
 }
 
 export enum ResourceAction {
@@ -91,13 +91,13 @@ export enum ResourceAction {
   READ = 'READ',
   UPDATE = 'UPDATE',
   DELETE = 'DELETE',
-  MANAGE = 'MANAGE'
+  MANAGE = 'MANAGE',
 }
 
 export enum RoleType {
   SUPER_ADMIN = 'SUPER ADMIN',
   EDITOR = 'EDITOR',
-  VIEWER = 'VIEWER'
+  VIEWER = 'VIEWER',
 }
 
 export enum FeatureCategory {
@@ -106,29 +106,29 @@ export enum FeatureCategory {
   TECHNOLOGY = 'TECHNOLOGY',
   PERFORMANCE = 'PERFORMANCE',
   LUXURY = 'LUXURY',
-  OTHER = "OTHER"
+  OTHER = 'OTHER',
 }
 
 export enum CarDocumentType {
-    REGISTRATION = 'REGISTRATION',
-    INSURANCE = 'INSURANCE',
-    MAINTENANCE = 'MAINTENANCE',
-    OWNERSHIP = 'OWNERSHIP',
-    INSPECTION = 'INSPECTION',
-    ACCIDENT = 'ACCIDENT',
-    OTHER = 'OTHER',
+  REGISTRATION = 'REGISTRATION',
+  INSURANCE = 'INSURANCE',
+  MAINTENANCE = 'MAINTENANCE',
+  OWNERSHIP = 'OWNERSHIP',
+  INSPECTION = 'INSPECTION',
+  ACCIDENT = 'ACCIDENT',
+  OTHER = 'OTHER',
 }
 
 export enum CarHistoryRecordType {
-    MAINTENANCE = 'MAINTENANCE',
-    RENTAL = 'RENTAL',
-    SALE = 'SALE',
-    OWNERSHIP_CHANGE = 'OWNERSHIP_CHANGE',
-    ACCIDENT = 'ACCIDENT',
-    INSPECTION = 'INSPECTION',
-    LOCATION_CHANGE = 'LOCATION_CHANGE',
-    MODIFICATION = 'MODIFICATION',
-    DETAILS_UPDATED = 'DETAILS_UPDATED'
+  MAINTENANCE = 'MAINTENANCE',
+  RENTAL = 'RENTAL',
+  SALE = 'SALE',
+  OWNERSHIP_CHANGE = 'OWNERSHIP_CHANGE',
+  ACCIDENT = 'ACCIDENT',
+  INSPECTION = 'INSPECTION',
+  LOCATION_CHANGE = 'LOCATION_CHANGE',
+  MODIFICATION = 'MODIFICATION',
+  DETAILS_UPDATED = 'DETAILS_UPDATED',
 }
 
 export enum CarCategory {
@@ -193,4 +193,34 @@ export enum CarInspectionStatus {
   PENDING = 'PENDING',
   FAILED = 'FAILED',
   EXEMPTED = 'EXEMPTED',
+}
+
+export enum BookingStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  PENDING_CAPTURE = 'PENDING_CAPTURE',
+  PAID = 'PAID',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED',
+}
+
+export enum CarPricingUnit {
+  HOUR = 'hour',
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum DriverType {
+  GCC = 'GCC',
+  TOURIST = 'TOURIST',
+  RESIDENT = 'RESIDENT'
 }

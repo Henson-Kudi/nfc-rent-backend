@@ -1,14 +1,12 @@
-import { Column } from "typeorm";
-import { Base } from "./base";
+import { Column } from 'typeorm';
+import { Base } from './base';
 
 export abstract class TranslationEntity<T> extends Base {
+  @Column()
+  locale!: string;
 
-    @Column()
-    locale!: string;
+  abstract parent: T;
 
-
-    abstract parent: T;
-
-    @Column()
-    parentId!: string; // Matches the parent entity's ID (e.g., CarBrand.id)
+  @Column()
+  parentId!: string; // Matches the parent entity's ID (e.g., CarBrand.id)
 }

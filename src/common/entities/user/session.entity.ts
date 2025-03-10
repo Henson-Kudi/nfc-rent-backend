@@ -1,35 +1,35 @@
-import { Base } from "../base"
-import { User } from '..'
-import { Column, Entity, JoinColumn, ManyToOne, Unique } from "typeorm"
+import { Base } from '../base';
+import { User } from '..';
+import { Column, Entity, JoinColumn, ManyToOne, Unique } from 'typeorm';
 
 @Entity()
-@Unique("UQ_UserSession_userId_device", ["userId", "device"])
+@Unique('UQ_UserSession_userId_device', ['userId', 'device'])
 export class Session extends Base {
-    @Column()
-    userId!: string
+  @Column()
+  userId!: string;
 
-    @ManyToOne(() => User, (user) => user.sessions)
-    @JoinColumn({ name: 'userId' })
-    user!: User
+  @ManyToOne(() => User, (user) => user.sessions)
+  @JoinColumn({ name: 'userId' })
+  user!: User;
 
-    @Column()
-    refreshToken!: string
+  @Column()
+  refreshToken!: string;
 
-    @Column()
-    device!: string
+  @Column()
+  device!: string;
 
-    @Column()
-    location!: string
+  @Column()
+  location!: string;
 
-    @Column()
-    expiresAt!: Date
+  @Column()
+  expiresAt!: Date;
 
-    @Column()
-    isActive!: boolean
+  @Column()
+  isActive!: boolean;
 
-    @Column({ nullable: true })
-    loggedOutAt?: Date
+  @Column({ nullable: true })
+  loggedOutAt?: Date;
 
-    @Column()
-    lastActiveAt!: Date
+  @Column()
+  lastActiveAt!: Date;
 }

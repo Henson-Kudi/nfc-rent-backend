@@ -1,22 +1,29 @@
-import { Column, Entity, OneToMany, Tree, TreeChildren, TreeParent, } from "typeorm";
-import { Base } from "../base";
-import { Permission } from '..'
+import {
+  Column,
+  Entity,
+  OneToMany,
+  Tree,
+  TreeChildren,
+  TreeParent,
+} from 'typeorm';
+import { Base } from '../base';
+import { Permission } from '..';
 
 @Entity()
 @Tree('materialized-path')
 export class Resource extends Base {
-    @Column()
-    name!: string;
+  @Column()
+  name!: string;
 
-    @Column({ unique: true })
-    path!: string;
+  @Column({ unique: true })
+  path!: string;
 
-    @TreeParent()
-    parent!: Resource;
+  @TreeParent()
+  parent!: Resource;
 
-    @TreeChildren()
-    children!: Resource[];
+  @TreeChildren()
+  children!: Resource[];
 
-    @OneToMany(() => Permission, permission => permission.resource)
-    permissions!: Permission[];
+  @OneToMany(() => Permission, (permission) => permission.resource)
+  permissions!: Permission[];
 }

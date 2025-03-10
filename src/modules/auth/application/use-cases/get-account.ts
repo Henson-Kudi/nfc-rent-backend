@@ -4,21 +4,19 @@ import { UserRepository } from '../../infrastructure/repositories/user.repositor
 import { instanceToPlain } from 'class-transformer';
 
 class GetAccount implements IUseCase<[string], IReturnValue<User | null>> {
-  constructor(private readonly repo: UserRepository) { }
+  constructor(private readonly repo: UserRepository) {}
 
   async execute(userId: string): Promise<IReturnValue<User | null>> {
-
     const user = await this.repo.findOne({
       where: { id: userId },
       select: {
-        password: false
-      }
+        password: false,
+      },
     });
-
 
     return new IReturnValue({
       success: true,
-      data: user ? instanceToPlain(user) as User : null,
+      data: user ? (instanceToPlain(user) as User) : null,
       message: 'Found user.',
     });
   }

@@ -4,10 +4,10 @@ import IPasswordManager from '@/modules/auth/application/providers/passwordManag
 import { ResponseCodes } from '@/common/enums';
 import { Service, Token } from 'typedi';
 
-export const PasswordManagerToken = new Token<IPasswordManager>()
+export const PasswordManagerToken = new Token<IPasswordManager>();
 @Service({
   id: PasswordManagerToken,
-  global: true
+  global: true,
 })
 export class PasswordManager implements IPasswordManager {
   private readonly saltRounds: number = 12;

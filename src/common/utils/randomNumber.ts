@@ -25,4 +25,4 @@ export const ORGANISATION_MODULE_NAMES = {
   shops: 'shops',
   // orders: 'orders',
   // settings: 'settings',
-} as const
+} as const;

@@ -4,7 +4,6 @@ import { AppError, IReturnValue } from '../utils';
 import { ResponseCodes } from '../enums';
 
 const globalErrorHandler: ErrorRequestHandler = (err, _, res, __) => {
-
   if (err instanceof AppError) {
     res
       .status(err.statusCode)

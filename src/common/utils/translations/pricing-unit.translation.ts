@@ -1,0 +1,51 @@
+export const pricingUnitTranslations: EnumTranslationManager = {
+    en: {
+        hour: 'hour',
+        day: 'day',
+        week: 'week',
+        month: 'month',
+        year: 'year',
+    },
+    ar: {
+        hour: 'ساعة',
+        day: 'يوم',
+        week: 'اسبوع',
+        month: 'شهر',
+        year: 'سنة',
+    },
+    es: {
+        hour: 'hora',
+        day: 'día',
+        week: 'semana',
+        month: 'mes',
+        year: 'año',
+    },
+    fr: {
+        hour: 'heure',
+        day: 'jour',
+        week: 'semaine',
+        month: 'mois',
+        year: 'année',
+    },
+    it: {
+        hour: 'ora',
+        day: 'giorno',
+        week: 'settimana',
+        month: 'mese',
+        year: 'anno',
+    },
+    ru: {
+        hour: 'час',
+        day: 'день',
+        week: 'неделя',
+        month: 'месяц',
+        year: 'год',
+    },
+    zh: {
+        hour: '小时',
+        day: '天',
+        week: '周',
+        month: '月',
+        year: '年',
+    },
+}

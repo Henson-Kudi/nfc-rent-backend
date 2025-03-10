@@ -2,7 +2,7 @@ import envConf from '@/config/env.conf';
 import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 import { Service, Token } from 'typedi';
 
-export const TokenManagerToken = new Token<ITokenManager>()
+export const TokenManagerToken = new Token<ITokenManager>();
 @Service({ id: TokenManagerToken, global: true })
 export class TokenManager implements ITokenManager {
   private readonly accessTokenPrivatekey: string;

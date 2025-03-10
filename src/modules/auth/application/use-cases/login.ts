@@ -14,17 +14,17 @@ import { SessionRepository } from '../../infrastructure/repositories/session.rep
 import { instanceToPlain } from 'class-transformer';
 class Login
   implements
-  IUseCase<
-    [LoginData],
-    IReturnValue<
-      | (User & TokenDto)
-      | {
-        requiresOtp: boolean;
-        token: string; // encrypted user object
-      }
+    IUseCase<
+      [LoginData],
+      IReturnValue<
+        | (User & TokenDto)
+        | {
+            requiresOtp: boolean;
+            token: string; // encrypted user object
+          }
+      >
     >
-  > {
-
+{
   constructor(
     private readonly repository: UserRepository,
     private readonly sessionRepo: SessionRepository,
@@ -32,15 +32,15 @@ class Login
     private readonly passwordManager: IPasswordManager,
     private readonly tokenManager: ITokenManager,
     private readonly googleservicesManager: IGoogleServicesManager
-  ) { }
+  ) {}
 
   async execute(input: LoginData): Promise<
     IReturnValue<
       | (User & TokenDto)
       | {
-        requiresOtp: boolean;
-        token: string; // encrypted user object
-      }
+          requiresOtp: boolean;
+          token: string; // encrypted user object
+        }
     >
   > {
     const data = new LoginDto(input);
@@ -78,7 +78,7 @@ class Login
       });
     }
 
-    user = instanceToPlain(user) as User
+    user = instanceToPlain(user) as User;
 
     // If user's email is not verified, ensure they verify before giving them access to platform
     if (!user.emailVerified) {
@@ -136,10 +136,9 @@ class Login
             userId: user.id,
             refreshToken: '',
             expiresAt: new Date(),
-            location: data?.location
-          })
-          await this.sessionRepo.save(session)
-
+            location: data?.location,
+          });
+          await this.sessionRepo.save(session);
         } else {
           this.messageBroker.publishMessage<
             User & { requiresOtp: boolean; otpType: OTPType }
@@ -168,10 +167,7 @@ class Login
             },
           });
         }
-
       }
-
-
     } else {
       if (data.loginType === LoginType.GOOGLE) {
         session = await this.sessionRepo.create({
@@ -179,9 +175,9 @@ class Login
           userId: user.id,
           refreshToken: '',
           expiresAt: new Date(),
-        })
+        });
 
-        await this.sessionRepo.save(session)
+        await this.sessionRepo.save(session);
       } else {
         this.messageBroker.publishMessage<
           User & { requiresOtp: boolean; otpType: OTPType }
@@ -262,9 +258,9 @@ class Login
     }) as IReturnValue<
       | (User & TokenDto)
       | {
-        requiresOtp: boolean;
-        token: string; // encrypted user object
-      }
+          requiresOtp: boolean;
+          token: string; // encrypted user object
+        }
     >;
   }
 }

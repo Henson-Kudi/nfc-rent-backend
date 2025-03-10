@@ -6,18 +6,19 @@ import { ResponseCodes } from '@/common/enums';
 
 class UpdateAccountController
   implements
-  IController<Promise<IReturnValue<{ id: string, updated: UpdateUserData }>>> {
+    IController<Promise<IReturnValue<{ id: string; updated: UpdateUserData }>>>
+{
   handle(request: Request) {
-    const userId = request.headers?.['x-user-id'] || request?.user?.id
+    const userId = request.headers?.['x-user-id'] || request?.user?.id;
 
     if (!userId) {
       throw new AppError({
-        message: "Forbidden",
-        statusCode: ResponseCodes.Forbidden
-      })
+        message: 'Forbidden',
+        statusCode: ResponseCodes.Forbidden,
+      });
     }
 
-    const authService = Container.get(AuthService)
+    const authService = Container.get(AuthService);
     return authService.updateUser(userId, request.body);
   }
 }

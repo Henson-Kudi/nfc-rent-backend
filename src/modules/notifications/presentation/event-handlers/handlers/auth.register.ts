@@ -17,8 +17,8 @@ type OneTimeOtpParams = {
 
 const handleUserRegistereMessage: MessageHandler = async (message, channel) => {
   try {
-    const repo = Container.get(OTPRepository)
-    const passwordManager = Container.get(PasswordManagerToken)
+    const repo = Container.get(OTPRepository);
+    const passwordManager = Container.get(PasswordManagerToken);
     // generate otp code
     // hash the code
     // save in db
@@ -56,7 +56,7 @@ const handleUserRegistereMessage: MessageHandler = async (message, channel) => {
       count: 1,
     });
 
-    await repo.save(otp)
+    await repo.save(otp);
 
     await notificationsService.sendNotification.execute<OneTimeOtpParams>(
       new SendNotificationDTO(
@@ -72,7 +72,7 @@ const handleUserRegistereMessage: MessageHandler = async (message, channel) => {
       { otp: otpCode }
     );
   } catch (err: any) {
-    logger.error(err?.message, err)
+    logger.error(err?.message, err);
   }
 };
 

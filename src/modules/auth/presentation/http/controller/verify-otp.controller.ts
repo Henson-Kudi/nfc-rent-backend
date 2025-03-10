@@ -6,9 +6,10 @@ import { User } from '@/common/entities';
 import Container from 'typedi';
 
 class VerifyOTPController
-  implements IController<Promise<IReturnValue<User & TokenDto>>> {
+  implements IController<Promise<IReturnValue<User & TokenDto>>>
+{
   handle(request: Request) {
-    const authService = Container.get(AuthService)
+    const authService = Container.get(AuthService);
 
     const deviceName = request?.headers?.['x-device-name'];
     const location = request?.headers?.['x-device-location'];

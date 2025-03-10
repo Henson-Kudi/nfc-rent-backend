@@ -6,7 +6,7 @@ import handleRequestOtpMessage from './auth.request-otp';
 const subscribeHandlers: Record<string, MessageHandler> = {
   [subscriptions.userRegistered]: handleUserRegistereMessage,
   [subscriptions.loggedIn]: handleUserLoginMessage,
-  [subscriptions.requestOtp]: handleRequestOtpMessage
+  [subscriptions.requestOtp]: handleRequestOtpMessage,
 };
 
 class EventHandlersFactory {

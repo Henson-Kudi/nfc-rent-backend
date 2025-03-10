@@ -15,8 +15,26 @@ accountRouter.use(authenticateRequest());
 
 accountRouter
   .route('/')
-  .get(hasPermission(Modules.users.children.user.children.profile.path, ResourceAction.READ), requestHandler(new GetAccountController()))
-  .put(hasPermission(Modules.users.children.user.children.profile.path, ResourceAction.UPDATE), requestHandler(new UpdateAccountController()))
-  .delete(hasPermission(Modules.users.children.user.children.profile.path, ResourceAction.DELETE), requestHandler(new DeleteAccountController()));
+  .get(
+    hasPermission(
+      Modules.users.children.user.children.profile.path,
+      ResourceAction.READ
+    ),
+    requestHandler(new GetAccountController())
+  )
+  .put(
+    hasPermission(
+      Modules.users.children.user.children.profile.path,
+      ResourceAction.UPDATE
+    ),
+    requestHandler(new UpdateAccountController())
+  )
+  .delete(
+    hasPermission(
+      Modules.users.children.user.children.profile.path,
+      ResourceAction.DELETE
+    ),
+    requestHandler(new DeleteAccountController())
+  );
 
 export default accountRouter;

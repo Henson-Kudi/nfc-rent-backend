@@ -6,15 +6,15 @@ import { UserRepository } from '../../infrastructure/repositories/user.repositor
 
 class EnableTOTP
   implements
-  IUseCase<
-    [string],
-    IReturnValue<GeneratedSecret & { status: TOTPStatus; enabled: boolean }>
-  > {
-
+    IUseCase<
+      [string],
+      IReturnValue<GeneratedSecret & { status: TOTPStatus; enabled: boolean }>
+    >
+{
   constructor(
     private readonly repository: UserRepository,
     private readonly totpProvider: TOTPMFA
-  ) { }
+  ) {}
 
   async execute(
     userId: string

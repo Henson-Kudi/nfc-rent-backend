@@ -9,16 +9,17 @@ import { NotificationMemoryCache } from '../../config/memory-cache';
 
 export class SendNotification
   implements
-  IUseCase<
-    [SendNotificationDTO, Record<string, unknown>],
-    IReturnValue<{ sent: boolean }>
-  > {
+    IUseCase<
+      [SendNotificationDTO, Record<string, unknown>],
+      IReturnValue<{ sent: boolean }>
+    >
+{
   constructor(
     private readonly notificationRepo: NotificationRepository,
     private readonly channelFactory: NotificationChannelFactory,
     private readonly templatesRepo: ITemplatesRepository,
     private readonly cache: NotificationMemoryCache
-  ) { }
+  ) {}
 
   async execute<T extends object>(
     input: SendNotificationDTO,
@@ -76,9 +77,9 @@ export class SendNotification
 
     const compiledTitle = template?.title
       ? renderNotificationTemplate(template?.title, {
-        ...input,
-        ...templateOptions,
-      })
+          ...input,
+          ...templateOptions,
+        })
       : undefined;
     const compiledBody = renderNotificationTemplate(template?.content, {
       ...input,
@@ -102,7 +103,7 @@ export class SendNotification
       });
     }
 
-    console.log(compiledBody)
+    console.log(compiledBody);
 
     const channelFactory = this.channelFactory.getChannel(input.channel);
 

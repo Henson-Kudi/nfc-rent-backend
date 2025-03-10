@@ -2,10 +2,10 @@ import TOTPMFA from '@/modules/auth/application/providers/totp';
 import speakeasy from 'speakeasy';
 import { Service, Token } from 'typedi';
 
-
-export const TOTPToken = new Token<TOTPMFA>()
+export const TOTPToken = new Token<TOTPMFA>();
 @Service({
-  id: TOTPToken, global: true
+  id: TOTPToken,
+  global: true,
 })
 export class TOTP implements TOTPMFA {
   generateSecret(userEmail: string) {

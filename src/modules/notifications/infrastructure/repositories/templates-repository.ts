@@ -1,7 +1,6 @@
 import ITemplatesRepository from '../../application/repositories/templates-repository';
 
 class TemplatesRepository implements ITemplatesRepository {
-
   async getTemplateBySlug(
     slug: string,
     locale?: SupportedLocales

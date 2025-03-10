@@ -44,16 +44,18 @@ router.post('/verify-otp', requestHandlerWithCookie(new VerifyOTPController()));
 
 router.post('/logout', authenticateRequest(), async (req, res, next) => {
   try {
-    res.clearCookie('refresh-token')
+    res.clearCookie('refresh-token');
 
-    const result = await new LogoutController().handle(req)
+    const result = await new LogoutController().handle(req);
 
-    res.status(ResponseCodes.Success).json(result)
+    res.status(ResponseCodes.Success).json(result);
   } catch (err) {
-    res.status(ResponseCodes.Success).json({ success: true, message: 'Logged out successfully' })
+    res
+      .status(ResponseCodes.Success)
+      .json({ success: true, message: 'Logged out successfully' });
   }
 
-  next()
+  next();
 });
 
 export default router;

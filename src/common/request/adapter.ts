@@ -10,7 +10,7 @@ function requestHandler<Output>(
 
       res.status(ResponseCodes.Success).json(result);
 
-      next();
+      // next();
     } catch (err) {
       next(err);
     }

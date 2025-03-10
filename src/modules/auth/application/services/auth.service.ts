@@ -9,7 +9,6 @@ import Login from '../use-cases/login';
 import GetAccount from '../use-cases/get-account';
 import Logout from '../use-cases/logout';
 import { Inject, Service } from 'typedi';
-import { ChangePasswordDto, LoginDto, LogoutDTO, OTPVerificationDto, RegisterUserDto, RequestOTPDto, ResetPasswordDto } from '../../domain/dtos';
 import IPasswordManager from '../providers/passwordManager';
 import TOTPMFA from '../providers/totp';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
@@ -44,56 +43,98 @@ export class AuthService {
     @Inject(TOTPToken)
     private readonly totpProvider: TOTPMFA,
     @Inject(GoogleServicesManagerToken)
-    private readonly googleServicesManager: IGoogleServicesManager,
-  ) { }
-
+    private readonly googleServicesManager: IGoogleServicesManager
+  ) {}
 
   changePassword(data: ChangePasswordData) {
-    return new ChangePassword(this.userRepository, this.passwordManager, this.messageBroker).execute(data)
-  };
+    return new ChangePassword(
+      this.userRepository,
+      this.passwordManager,
+      this.messageBroker
+    ).execute(data);
+  }
 
   login(data: LoginData) {
-    return new Login(this.userRepository, this.sessionRepository, this.messageBroker, this.passwordManager, this.tokenManager, this.googleServicesManager).execute(data)
-  };
+    return new Login(
+      this.userRepository,
+      this.sessionRepository,
+      this.messageBroker,
+      this.passwordManager,
+      this.tokenManager,
+      this.googleServicesManager
+    ).execute(data);
+  }
 
   logout(data: LogoutData) {
-    return new Logout(this.sessionRepository, this.messageBroker).execute(data)
-  };
+    return new Logout(this.sessionRepository, this.messageBroker).execute(data);
+  }
 
   enableOtp(userId: string) {
-    return new EnableTOTP(this.userRepository, this.totpProvider).execute(userId)
-  };
+    return new EnableTOTP(this.userRepository, this.totpProvider).execute(
+      userId
+    );
+  }
 
   refreshAccessToken(refreshToken: string, device: string, location: string) {
-    return new RefreshAccessToken(this.userRepository, this.sessionRepository, this.tokenManager).execute(refreshToken, device, location)
-  };
+    return new RefreshAccessToken(
+      this.userRepository,
+      this.sessionRepository,
+      this.tokenManager
+    ).execute(refreshToken, device, location);
+  }
 
   register(request: RegisterUserData) {
-    return new RegisterUseCase(this.userRepository, this.roleRepository, this.passwordManager, this.messageBroker).execute(request)
-  };
+    return new RegisterUseCase(
+      this.userRepository,
+      this.roleRepository,
+      this.passwordManager,
+      this.messageBroker
+    ).execute(request);
+  }
 
   requestOtp(params: RequestOTPData) {
-    return new RequestOTP(this.userRepository, this.otpRepository, this.passwordManager, this.messageBroker).execute(params)
-  };
+    return new RequestOTP(
+      this.userRepository,
+      this.otpRepository,
+      this.passwordManager,
+      this.messageBroker
+    ).execute(params);
+  }
 
-  resetPassword(data: {email: string}) {
-    return new ResetPassword(this.userRepository, this.messageBroker, this.tokenManager).execute(data)
-  };
+  resetPassword(data: { email: string }) {
+    return new ResetPassword(
+      this.userRepository,
+      this.messageBroker,
+      this.tokenManager
+    ).execute(data);
+  }
 
   verifyOtp(params: OTPValidationData) {
-    return new VerifyOtp(this.userRepository, this.sessionRepository, this.otpRepository, this.passwordManager, this.totpProvider, this.tokenManager).execute(params)
-  };
+    return new VerifyOtp(
+      this.userRepository,
+      this.sessionRepository,
+      this.otpRepository,
+      this.passwordManager,
+      this.totpProvider,
+      this.tokenManager
+    ).execute(params);
+  }
 
   getAccount(userId: string) {
-    return new GetAccount(this.userRepository).execute(userId)
-  };
+    return new GetAccount(this.userRepository).execute(userId);
+  }
 
   softDeleteUser(userId: string) {
-    return new SoftDeleteUserUseCase(this.userRepository, this.messageBroker).execute(userId)
+    return new SoftDeleteUserUseCase(
+      this.userRepository,
+      this.messageBroker
+    ).execute(userId);
   }
 
   updateUser(userId: string, data: UpdateUserData) {
-    return new UpdateUserUseCase(this.userRepository, this.messageBroker).execute(userId, data)
+    return new UpdateUserUseCase(
+      this.userRepository,
+      this.messageBroker
+    ).execute(userId, data);
   }
 }
-

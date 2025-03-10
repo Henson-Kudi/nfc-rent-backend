@@ -6,19 +6,19 @@ import { resetPassword } from '../../utils/messageTopics.json';
 import { User } from '@/common/entities';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
 
-
 class ResetPassword
-  implements IUseCase<[{ email: string }], IReturnValue<{ sent: true }>> {
-
-
+  implements IUseCase<[{ email: string }], IReturnValue<{ sent: true }>>
+{
   constructor(
     // @Inject('global.datasource')
     private readonly userRepository: UserRepository,
     private readonly messageBroker: IMessageBroker,
     private readonly tokenManager: ITokenManager
-  ) { }
+  ) {}
 
-  async execute(data: { email: string }): Promise<IReturnValue<{ sent: true }>> {
+  async execute(data: {
+    email: string;
+  }): Promise<IReturnValue<{ sent: true }>> {
     const input = new ResetPasswordDto(data);
 
     input.validate();

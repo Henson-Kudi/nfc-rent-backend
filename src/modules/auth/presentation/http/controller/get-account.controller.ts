@@ -7,9 +7,10 @@ import { AuthService } from '@/modules/auth/application/services/auth.service';
 import Container from 'typedi';
 
 class GetAccountController
-  implements IController<Promise<IReturnValue<User | null>>> {
+  implements IController<Promise<IReturnValue<User | null>>>
+{
   handle(request: Request): Promise<IReturnValue<User | null>> {
-    const authService = Container.get(AuthService)
+    const authService = Container.get(AuthService);
     const userId = request.headers?.['x-user-id'] as string;
 
     if (!userId) {

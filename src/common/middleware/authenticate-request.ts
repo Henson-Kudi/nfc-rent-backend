@@ -8,7 +8,6 @@ import { User } from '../entities';
 import { UserRepository } from '@/modules/auth/infrastructure/repositories/user.repository';
 import { JsonWebTokenError } from 'jsonwebtoken';
 
-
 export default function authenticateRequest(
   tokenType: JwtType = 'ACCESS_TOKEN'
 ): (req: Request, res: Response, next: NextFunction) => Promise<void> {
@@ -18,9 +17,9 @@ export default function authenticateRequest(
     next: NextFunction
   ): Promise<void> => {
     try {
-      const tokenManager = Container.get(TokenManagerToken)
-      const cacheFactory = Container.get(Cache)
-      const userRepository = Container.get(UserRepository)
+      const tokenManager = Container.get(TokenManagerToken);
+      const cacheFactory = Container.get(Cache);
+      const userRepository = Container.get(UserRepository);
 
       let token = req.headers.authorization;
 
@@ -46,27 +45,26 @@ export default function authenticateRequest(
         token
       );
 
-      const cacheKey = `user:${verifiedToken.userId}`
+      const cacheKey = `user:${verifiedToken.userId}`;
 
-      let user = await cacheFactory.get<User>(cacheKey)
+      let user = await cacheFactory.get<User>(cacheKey);
 
       if (!user) {
         user = await userRepository.findOne({
           where: { id: verifiedToken.userId },
-          relations: ['roles', 'roles.permissions']
-        })
+          relations: ['roles', 'roles.permissions'],
+        });
 
         if (user) {
-          await cacheFactory.set(cacheKey, JSON.stringify(user))
+          await cacheFactory.set(cacheKey, JSON.stringify(user));
         }
       }
-
 
       if (!user) {
         throw new AppError({
           statusCode: ResponseCodes.UnAuthorised,
-          message: 'Not Authorised'
-        })
+          message: 'Not Authorised',
+        });
       }
       // Add user related data to request headers
       req.headers['x-user-id'] = verifiedToken.userId;
@@ -74,7 +72,7 @@ export default function authenticateRequest(
       req.headers['x-user-groups'] = verifiedToken.groups?.join(',');
 
       // Set request user
-      req.user = user
+      req.user = user;
 
       next();
     } catch (error) {
@@ -82,9 +80,9 @@ export default function authenticateRequest(
         next(
           new AppError({
             statusCode: ResponseCodes.UnAuthorised,
-            message: 'Unauthorised'
+            message: 'Unauthorised',
           })
-        )
+        );
       }
       next(error);
     }

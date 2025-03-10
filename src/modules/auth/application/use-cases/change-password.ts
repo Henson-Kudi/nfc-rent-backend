@@ -7,13 +7,13 @@ import { passwordChanged } from '../../utils/messageTopics.json';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
 
 class ChangePassword
-  implements IUseCase<[ChangePasswordData], IReturnValue<{ success: boolean }>> {
-
+  implements IUseCase<[ChangePasswordData], IReturnValue<{ success: boolean }>>
+{
   constructor(
     private readonly repository: UserRepository,
     private readonly passwordManager: IPasswordManager,
     private readonly messageBroker: IMessageBroker
-  ) { }
+  ) {}
 
   async execute(
     data: ChangePasswordData
@@ -63,9 +63,12 @@ class ChangePassword
 
     user.password = newPassword;
 
-    await this.repository.update({ id: user.id }, {
-      password: newPassword,
-    });
+    await this.repository.update(
+      { id: user.id },
+      {
+        password: newPassword,
+      }
+    );
 
     // Publish password changed event
     try {

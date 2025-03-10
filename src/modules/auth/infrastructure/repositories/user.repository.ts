@@ -1,6 +1,6 @@
-import { User } from "@/common/entities";
-import { Service } from "typedi";
-import { Repository } from "typeorm";
+import { User } from '@/common/entities';
+import { Service } from 'typedi';
+import { Repository } from 'typeorm';
 
 @Service()
-export class UserRepository extends Repository<User>{}
+export class UserRepository extends Repository<User> {}

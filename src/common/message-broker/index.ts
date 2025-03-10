@@ -3,8 +3,7 @@ import envConf from '@/config/env.conf';
 import logger from '../utils/logger';
 import Container, { Service, Token } from 'typedi';
 
-
-export const MessageBrokerToken = new Token<IMessageBroker>()
+export const MessageBrokerToken = new Token<IMessageBroker>();
 @Service({ id: MessageBrokerToken, global: true })
 export class MessageBroker implements IMessageBroker {
   private subscriber: RedisClientType;

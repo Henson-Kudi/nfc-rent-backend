@@ -8,13 +8,13 @@ import { UserRepository } from '../../infrastructure/repositories/user.repositor
 import { instanceToPlain } from 'class-transformer';
 
 export class RefreshAccessToken
-  implements IUseCase<[string, string, string], IReturnValue<User & TokenDto>> {
-
+  implements IUseCase<[string, string, string], IReturnValue<User & TokenDto>>
+{
   constructor(
     private readonly repository: UserRepository,
     private readonly sessionRepo: SessionRepository,
     private readonly tokenManager: ITokenManager
-  ) { }
+  ) {}
 
   async execute(
     refreshToken: string,
@@ -26,7 +26,9 @@ export class RefreshAccessToken
       refreshToken
     );
 
-    const user = instanceToPlain(await this.repository.findOneBy({ id: verifiedToken.userId })) as User;
+    const user = instanceToPlain(
+      await this.repository.findOneBy({ id: verifiedToken.userId })
+    ) as User;
 
     // Session must be available. Token can only come from a session
     let session = await this.sessionRepo.findOneBy({
@@ -71,19 +73,22 @@ export class RefreshAccessToken
         (decodedRefreshToken.exp as number) * 1000
       );
 
-      const now = new Date()
+      const now = new Date();
 
-      await this.sessionRepo.update({
-        id: session.id,
-      }, {
-        refreshToken: refreshToken,
-        expiresAt: refreshTokenExpiry,
-        lastActiveAt: now,
-      });
+      await this.sessionRepo.update(
+        {
+          id: session.id,
+        },
+        {
+          refreshToken: refreshToken,
+          expiresAt: refreshTokenExpiry,
+          lastActiveAt: now,
+        }
+      );
 
-      session.refreshToken = refreshToken
-      session.expiresAt = refreshTokenExpiry
-      session.lastActiveAt = now
+      session.refreshToken = refreshToken;
+      session.expiresAt = refreshTokenExpiry;
+      session.lastActiveAt = now;
     }
 
     if (!session) {

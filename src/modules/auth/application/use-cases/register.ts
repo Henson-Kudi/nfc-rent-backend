@@ -14,23 +14,22 @@ import { In } from 'typeorm';
 import { instanceToPlain } from 'class-transformer';
 import { User } from '@prisma/client';
 
-
 class RegisterUseCase
   implements
-  IUseCase<
-    [RegisterUserData],
-    IReturnValue<{
-      requiresOtp: boolean;
-      token: string; // encrypted user object
-    }>
-  > {
-
+    IUseCase<
+      [RegisterUserData],
+      IReturnValue<{
+        requiresOtp: boolean;
+        token: string; // encrypted user object
+      }>
+    >
+{
   constructor(
     private readonly userRepository: UserRepository,
     private readonly roleRepository: RoleRepository,
     private readonly passwordManager: IPasswordManager,
-    private readonly messageBroker: IMessageBroker,
-  ) { }
+    private readonly messageBroker: IMessageBroker
+  ) {}
 
   async execute(request: RegisterUserData): Promise<
     IReturnValue<{
@@ -44,12 +43,12 @@ class RegisterUseCase
 
     // Fetch user by email or phone to ensure they do not exist already
     let user = await this.userRepository.findOneBy({
-      email: request.email
+      email: request.email,
     });
 
     if (!user) {
       user = await this.userRepository.findOneBy({
-        phone: request.phone
+        phone: request.phone,
       });
     }
 
@@ -86,15 +85,17 @@ class RegisterUseCase
     // We need to attach default user role to this user if roles where not set in request
     let userRoles: Role[] = await this.roleRepository.find({
       where: { slug: slugify('USER') },
-      relations: ['permissions']
-    })
+      relations: ['permissions'],
+    });
 
     // If any additional roles were passed, add it to user
     if (roles?.length) {
-      userRoles = userRoles.concat(await this.roleRepository.find({
-        where: { id: In(roles) },
-        relations: ['permissions']
-      }))
+      userRoles = userRoles.concat(
+        await this.roleRepository.find({
+          where: { id: In(roles) },
+          relations: ['permissions'],
+        })
+      );
     }
 
     let newUser = this.userRepository.create({
@@ -103,13 +104,17 @@ class RegisterUseCase
       email: request.email.toLowerCase(),
       loginType: LoginType.EMAIL,
       roles: userRoles,
-      cachedPermissions: userRoles?.map(r => r.permissions?.map(p => p.identifier)).flat()
+      cachedPermissions: userRoles
+        ?.map((r) => r.permissions?.map((p) => p.identifier))
+        .flat(),
     });
 
-    const savedUser = instanceToPlain(await this.userRepository.save(newUser)) as User
+    const savedUser = instanceToPlain(
+      await this.userRepository.save(newUser)
+    ) as User;
 
     const encData = {
-      ...(savedUser),
+      ...savedUser,
       verificationType: OTPVERIFICATIONTYPES.EMAIL,
     };
 

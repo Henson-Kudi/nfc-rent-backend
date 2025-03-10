@@ -12,19 +12,19 @@
           "name": "Documents",
           "path": "users.documents"
         },
-        "user":{
-            "name": "User Account",
-            "path": "user.*",
-            "children":{
-                "profile": {
-                    "name": "User Profile",
-                    "path": "user.profile"
-                },
-                "documents": {
-                    "name": "User documents",
-                    "path": "user.documents"
-                }
+        "user": {
+          "name": "User Account",
+          "path": "user.*",
+          "children": {
+            "profile": {
+              "name": "User Profile",
+              "path": "user.profile"
+            },
+            "documents": {
+              "name": "User documents",
+              "path": "user.documents"
             }
+          }
         }
       }
     },

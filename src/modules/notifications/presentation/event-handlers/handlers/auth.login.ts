@@ -42,7 +42,6 @@ const handleUserLoginMessage: MessageHandler = async (message, channel) => {
     // const hashedOtp = await passwordManager.encryptPassword(otpCode);
     // const otpExpireAt = moment().add(15, 'minutes').toDate();
 
-
     try {
       // await oTPRepository.create({
       //   data: {
@@ -65,7 +64,7 @@ const handleUserLoginMessage: MessageHandler = async (message, channel) => {
         { otp: otpCode }
       );
     } catch (error) {
-      logger.error(error)
+      logger.error(error);
     }
   }
 };

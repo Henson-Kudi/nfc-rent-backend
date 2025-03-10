@@ -25,7 +25,7 @@ export class Cache {
   async get<T>(key: string): Promise<T | null> {
     try {
       const value = await this.client.get(key);
-      return value ? JSON.parse(value) as T : null;
+      return value ? (JSON.parse(value) as T) : null;
     } catch (error) {
       logger.error('Redis get error:', error);
       throw error;
@@ -68,7 +68,6 @@ export class Cache {
 }
 
 export function connectCache(): Promise<void> {
-
   return Container.get(Cache).connect();
 }
 

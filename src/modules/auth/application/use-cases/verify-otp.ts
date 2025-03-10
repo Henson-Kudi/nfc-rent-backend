@@ -12,15 +12,17 @@ import { SessionRepository } from '../../infrastructure/repositories/session.rep
 import { OTPRepository } from '../../infrastructure/repositories/otp.repository';
 import { instanceToPlain } from 'class-transformer';
 
-class VerifyOtp implements IUseCase<[OTPValidationData], IReturnValue<User & TokenDto>> {
+class VerifyOtp
+  implements IUseCase<[OTPValidationData], IReturnValue<User & TokenDto>>
+{
   constructor(
     private readonly repository: UserRepository,
     private readonly sessionRepo: SessionRepository,
     private readonly otpRepo: OTPRepository,
     private readonly passwordManager: IPasswordManager,
     private readonly totpProvider: TOTPMFA,
-    private readonly tokenManager: ITokenManager,
-  ) { }
+    private readonly tokenManager: ITokenManager
+  ) {}
 
   async execute(
     params: OTPValidationData
@@ -36,7 +38,7 @@ class VerifyOtp implements IUseCase<[OTPValidationData], IReturnValue<User & Tok
       const decrypted = decryptData<UserWithVerificationType>(validData.token);
 
       const otp = await this.otpRepo.findOneBy({
-        userId: decrypted.id
+        userId: decrypted.id,
       });
 
       if (!otp || !validData.token) {
@@ -67,19 +69,24 @@ class VerifyOtp implements IUseCase<[OTPValidationData], IReturnValue<User & Tok
         });
       }
 
-
       if (
         decrypted.verificationType === OTPVERIFICATIONTYPES.EMAIL &&
         !user.emailVerified
       ) {
-        await this.repository.update({ id: decrypted.id }, { emailVerified: true });
-        user.emailVerified = true
+        await this.repository.update(
+          { id: decrypted.id },
+          { emailVerified: true }
+        );
+        user.emailVerified = true;
       } else if (
         decrypted.verificationType === OTPVERIFICATIONTYPES.PHONE &&
         !user.phoneVerified
       ) {
-        await this.repository.update({ id: decrypted.id }, { phoneVerified: true });
-        user.phoneVerified = true
+        await this.repository.update(
+          { id: decrypted.id },
+          { phoneVerified: true }
+        );
+        user.phoneVerified = true;
       }
 
       await this.otpRepo.delete({ id: otp.id });
@@ -106,8 +113,11 @@ class VerifyOtp implements IUseCase<[OTPValidationData], IReturnValue<User & Tok
       }
 
       if (User.totpStatus === TOTPStatus.REQUIRES_VERIFICATION) {
-        await this.repository.update({ id: User.id }, { totpStatus: TOTPStatus.ENABLED });
-        User.totpStatus = TOTPStatus.ENABLED
+        await this.repository.update(
+          { id: User.id },
+          { totpStatus: TOTPStatus.ENABLED }
+        );
+        User.totpStatus = TOTPStatus.ENABLED;
       }
 
       user = User;
@@ -120,7 +130,7 @@ class VerifyOtp implements IUseCase<[OTPValidationData], IReturnValue<User & Tok
       });
     }
 
-    user = instanceToPlain(user) as User
+    user = instanceToPlain(user) as User;
 
     // If otp is valid then we're good to go and sign a session
     let session = await this.sessionRepo.findOneBy({
@@ -163,7 +173,7 @@ class VerifyOtp implements IUseCase<[OTPValidationData], IReturnValue<User & Tok
         lastActiveAt: new Date(),
       });
 
-      await this.sessionRepo.save(session)
+      await this.sessionRepo.save(session);
 
       isNewSession = true;
     } else {

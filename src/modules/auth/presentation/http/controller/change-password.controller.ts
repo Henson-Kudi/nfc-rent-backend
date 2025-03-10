@@ -6,9 +6,10 @@ import Container, { Service } from 'typedi';
 
 @Service()
 class ChangePasswordController
-  implements IController<Promise<IReturnValue<{ success: boolean }>>> {
+  implements IController<Promise<IReturnValue<{ success: boolean }>>>
+{
   handle(request: Request) {
-    const authService = Container.get(AuthService)
+    const authService = Container.get(AuthService);
     const userId = request.headers?.['user-id'];
 
     return authService.changePassword({

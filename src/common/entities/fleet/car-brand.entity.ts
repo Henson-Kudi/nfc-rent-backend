@@ -1,8 +1,17 @@
-import { Column, Entity, ManyToOne, OneToMany, JoinColumn, BeforeInsert, BeforeUpdate, Index } from "typeorm";
-import { TranslationEntity } from "../translation-base";
-import { Base } from "../base";
-import { CarModel } from "..";
-import slugify from "@/common/utils/slugify";
+import {
+    Column,
+    Entity,
+    ManyToOne,
+    OneToMany,
+    JoinColumn,
+    BeforeInsert,
+    BeforeUpdate,
+    Index,
+} from 'typeorm';
+import { TranslationEntity } from '../translation-base';
+import { Base } from '../base';
+import { CarModel } from '..';
+import slugify from '@/common/utils/slugify';
 
 @Entity()
 @Index(['createdAt'])
@@ -17,23 +26,23 @@ export class CarBrand extends Base {
     slug!: string;
 
     @Column({ nullable: true })
-    logo?: string
+    logo?: string;
 
     @Column({ nullable: true })
-    coverImage?: string
+    coverImage?: string;
 
     // Translations (one-to-many)
-    @OneToMany(() => CarBrandTranslation, trans => trans.parent)
+    @OneToMany(() => CarBrandTranslation, (trans) => trans.parent)
     translations!: CarBrandTranslation[];
 
     // Models under this brand (one-to-many)
-    @OneToMany(() => CarModel, model => model.brand)
+    @OneToMany(() => CarModel, (model) => model.brand)
     models!: CarModel[];
 
     @BeforeInsert()
     @BeforeUpdate()
     slugifyCode() {
-        slugify(this.code)
+        slugify(this.code);
     }
 }
 
@@ -42,25 +51,27 @@ export class CarBrand extends Base {
 @Index(['name'], { fulltext: true })
 @Index(['parentId', 'locale', 'name'])
 export class CarBrandTranslation extends TranslationEntity<CarBrand> {
-    @ManyToOne(() => CarBrand, brand => brand.translations, { onDelete: 'CASCADE' })
+    @ManyToOne(() => CarBrand, (brand) => brand.translations, {
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'parentId' })
     parent!: CarBrand;
 
     @Column({})
-    name!: string
+    name!: string;
 
     @Column({ nullable: true })
-    shortDescription?: string
+    shortDescription?: string;
 
     @Column({ nullable: true })
-    description?: string
+    description?: string;
 
     @Column({ nullable: true })
-    metaTitle?: string
+    metaTitle?: string;
 
     @Column({ nullable: true })
-    metaDescription?: string
+    metaDescription?: string;
 
     @Column({ nullable: true })
-    metaTags?: string
+    metaTags?: string;
 }

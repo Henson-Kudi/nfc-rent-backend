@@ -17,7 +17,7 @@ export class RegisterUserDto {
   photo?: string;
   password: string;
   confirmPassword: string;
-  roles?: string[]
+  roles?: string[];
 
   constructor(init: RegisterUserData) {
     this.fullName = init.fullName;
@@ -26,7 +26,7 @@ export class RegisterUserDto {
     this.photo = init?.photo;
     this.password = init.password;
     this.confirmPassword = init.confirmPassword;
-    this.roles = init.roles
+    this.roles = init.roles;
   }
 
   validate() {
@@ -132,7 +132,7 @@ export class OTPVerificationDto {
     this.userId = data?.userId;
     this.email = data?.email;
     this.location = data?.location;
-    this.type = data.type as OTPType || OTPType.EMAIL;
+    this.type = (data.type as OTPType) || OTPType.EMAIL;
     this.code = data.code;
   }
 
@@ -146,14 +146,14 @@ export class OTPVerificationDto {
 export class RequestOTPDto {
   email?: string;
   userId?: string;
-  phone?: string
+  phone?: string;
   type: 'email' | 'phone';
 
   constructor(data: RequestOTPData) {
     this.type = data.type || 'email';
     this.userId = data?.userId;
     this.email = data?.email;
-    this.phone = data?.phone
+    this.phone = data?.phone;
   }
 
   validate() {

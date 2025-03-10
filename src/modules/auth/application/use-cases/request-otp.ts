@@ -18,19 +18,20 @@ const BASE_WAIT_TIME = 120; // 2mins - 120seconds
 const MAX_WAIT_TIME = 900; // 15mins - 900seconds
 
 // @Service('auth.requestOtp.use-case')
-class RequestOTP implements IUseCase<[RequestOTPData], IReturnValue<{ sent: boolean, token: string }>> {
-
-
+class RequestOTP
+  implements
+    IUseCase<[RequestOTPData], IReturnValue<{ sent: boolean; token: string }>>
+{
   constructor(
     private readonly repository: UserRepository,
     private readonly otpRepo: OTPRepository,
     private readonly passwordManager: IPasswordManager,
-    private readonly messageBroker: IMessageBroker,
-  ) { }
+    private readonly messageBroker: IMessageBroker
+  ) {}
 
   async execute(
     param: RequestOTPData
-  ): Promise<IReturnValue<{ sent: boolean, token: string }>> {
+  ): Promise<IReturnValue<{ sent: boolean; token: string }>> {
     const data = new RequestOTPDto(param);
 
     const validData = await data.validate();
@@ -42,7 +43,7 @@ class RequestOTP implements IUseCase<[RequestOTPData], IReturnValue<{ sent: bool
     } else if (validData.email) {
       user = await this.repository.findOneBy({ email: validData.email });
     } else if (validData.phone) {
-      user = await this.repository.findOneBy({ phone: validData.phone })
+      user = await this.repository.findOneBy({ phone: validData.phone });
     }
 
     if (!user) {
@@ -52,7 +53,7 @@ class RequestOTP implements IUseCase<[RequestOTPData], IReturnValue<{ sent: bool
       });
     }
 
-    user = instanceToPlain(user) as User
+    user = instanceToPlain(user) as User;
 
     let otp: OTP | null = await this.otpRepo.findOneBy({ userId: user.id });
 
@@ -80,18 +81,21 @@ class RequestOTP implements IUseCase<[RequestOTPData], IReturnValue<{ sent: bool
       }
 
       // Generate new otp code for security
-      const expireAt = moment().add(15, 'minutes').toDate()
+      const expireAt = moment().add(15, 'minutes').toDate();
 
-      await this.otpRepo.update({ id: otp.id }, {
-        ...otp,
-        count: otp.count + 1,
-        expireAt: expireAt,
-        token: harshedOtp,
-      });
+      await this.otpRepo.update(
+        { id: otp.id },
+        {
+          ...otp,
+          count: otp.count + 1,
+          expireAt: expireAt,
+          token: harshedOtp,
+        }
+      );
 
-      otp.expireAt = expireAt
-      otp.token = harshedOtp
-      otp.count += 1
+      otp.expireAt = expireAt;
+      otp.token = harshedOtp;
+      otp.count += 1;
     } else {
       // Save token to db and
       otp = this.otpRepo.create({
@@ -100,7 +104,7 @@ class RequestOTP implements IUseCase<[RequestOTPData], IReturnValue<{ sent: bool
         expireAt: moment().add(15, 'minutes').toDate(), // token expires after 10mins
       });
 
-      await this.otpRepo.save(otp)
+      await this.otpRepo.save(otp);
     }
 
     if (!otp) {
@@ -111,8 +115,11 @@ class RequestOTP implements IUseCase<[RequestOTPData], IReturnValue<{ sent: bool
     }
 
     const encData = {
-      ...(user),
-      verificationType: validData.type === 'email' ? OTPVERIFICATIONTYPES.EMAIL : OTPVERIFICATIONTYPES.PHONE,
+      ...user,
+      verificationType:
+        validData.type === 'email'
+          ? OTPVERIFICATIONTYPES.EMAIL
+          : OTPVERIFICATIONTYPES.PHONE,
     };
 
     const encrypted = encryptData({
@@ -120,12 +127,14 @@ class RequestOTP implements IUseCase<[RequestOTPData], IReturnValue<{ sent: bool
     });
 
     try {
-      this.messageBroker.publishMessage<User & { code: string, otpType: 'email' | 'phone' }>(requestOtp, {
+      this.messageBroker.publishMessage<
+        User & { code: string; otpType: 'email' | 'phone' }
+      >(requestOtp, {
         data: {
           ...user,
           code,
-          otpType: validData.type
-        } as User & { code: string, otpType: 'email' | 'phone' },
+          otpType: validData.type,
+        } as User & { code: string; otpType: 'email' | 'phone' },
       });
     } catch (err) {
       logger.error(`Failed to publish ${requestOtp} message`, err);

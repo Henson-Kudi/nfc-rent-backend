@@ -1,4 +1,4 @@
-import "reflect-metadata"
+import 'reflect-metadata';
 /// <reference path="./types/global" />
 /// <reference path="./types/global-imports" />
 
@@ -8,20 +8,19 @@ import { connectCache } from './common/cache/redis-cache';
 import { connectMessageBroker } from './common/message-broker';
 import subscribeToEvents from './modules/notifications/presentation/event-handlers/subscriptions';
 import { subscriptions as authSubscriptions } from './modules/notifications/utils/message-topics.json';
-import { dataSource, initializeDb, runMigrations } from "./common/database";
-import { initializeDI } from "./loaders/di";
-import { seedModules } from "./seeders/resources.seeder";
-import { seedDefaultRoles } from "./seeders/role.seeder";
-
+import { dataSource, initializeDb, runMigrations } from './common/database';
+import { initializeDI } from './loaders/di';
+import { seedModules } from './seeders/resources.seeder';
+import { seedDefaultRoles } from './seeders/role.seeder';
 
 // Run application
 (async () => {
   // await runMigrations()
 
   // Connect to datasource before starting the server
-  const datsSource = await initializeDb()
+  const datsSource = await initializeDb();
 
-  initializeDI(datsSource)
+  initializeDI(datsSource);
 
   // const roleRepo = Container.get(UserRepository)
 
@@ -33,7 +32,6 @@ import { seedDefaultRoles } from "./seeders/role.seeder";
   // await seedModules(datsSource)
 
   // await seedDefaultRoles(dataSource)
-
 
   // Start server
   startServer();

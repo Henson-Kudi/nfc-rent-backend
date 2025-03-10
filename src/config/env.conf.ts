@@ -23,7 +23,9 @@ const envConf = {
   CRYPTO_ENCRYPTION_KEY:
     process.env?.CRYPTO_ENCRYPTION_KEY ||
     'YzIffRyYQGbp1oDbrk1eyW5xUiUUv40RY7PBFC730oE=',
-  DATABASE_URL: process?.env?.DATABASE_URL || ''
+  DATABASE_URL: process?.env?.DATABASE_URL || '',
+  STRIPE_SECRET_KEY: process.env?.STRIPE_SECRET_KEY || '',
+  FRONTEND_URL: process?.env?.FRONTEND_URL || ''
 };
 
 export default envConf;
