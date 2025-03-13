@@ -1,9 +1,8 @@
+import { User } from '@/common/entities';
 import logger from '@/common/utils/logger';
 import generateRandomNumber from '@/common/utils/randomNumber';
 import notificationsService from '@/modules/notifications/application/services';
 import { SendNotificationDTO } from '@/modules/notifications/domain';
-import { User } from '@prisma/client';
-import moment from 'moment';
 
 type OneTimeOtpParams = {
   otp: string;
@@ -47,7 +46,7 @@ const handleRequestOtpMessage: MessageHandler = async (message, channel) => {
   }
 
   const otpType = user.otpType === 'email' ? 'EMAIL' : 'SMS';
-  const receipient = user.otpType === 'email' ? user.email : user.phone;
+  const receipient = user.otpType === 'email' ? user.email : user.phone!;
 
   try {
     await notificationsService.sendNotification.execute<OneTimeOtpParams>(

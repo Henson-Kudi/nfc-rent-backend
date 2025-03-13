@@ -1,0 +1,8 @@
+{
+    "bookingCreated": "booking.created",
+    "bookingConfirmed": "booking.confirmed",
+    "bookingCancelled": "booking.cancelled",
+    "paymentCreated": "payment.created",
+    "paymentConfirmed": "payment.confirmed",
+    "paymentRefunded": "payment.refunded"
+}

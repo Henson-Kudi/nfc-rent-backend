@@ -1,7 +1,11 @@
-import { Booking, Car, RentalPricing } from "@/common/entities";
+import { Car, RentalPricing } from "@/common/entities";
 import { Inject, Service } from "typedi";
 import { Repository } from "typeorm";
-import { CurrencyService } from "./currency.service";
+import { CurrencyService } from "../../../../common/services/currency.service";
+import { ResponseCodes, SupportedCurrencies, SupportedFiatCurrencies } from "@/common/enums";
+import { AppError, IReturnValue } from "@/common/utils";
+import { CarRepository } from "@/modules/cars/infrastrucure/car.repository";
+import { CryptoPaymentFactory } from "@/common/services/crypto-payment.service";
 
 @Service()
 export class PricingService {
@@ -21,24 +25,33 @@ export class PricingService {
         @Inject()
         private pricingRepository: Repository<RentalPricing>,
         @Inject()
-        private currencyService: CurrencyService
+        private currencyService: CurrencyService,
+        @Inject()
+        private cryptoFactory: CryptoPaymentFactory,
+        @Inject()
+        private carRepository: CarRepository,
     ) { }
 
     async calculateTotalPrice(
-        car: Car,
+        carId: string,
         startDate: Date,
         endDate: Date,
-        selectedAddons: Booking['selectedAddons'],
-        targetCurrency: string
+        targetCurrency: SupportedCurrencies
     ) {
-        const basePrice = await this.calculateBasePrice(car, startDate, endDate);
-        const addonsPrice = await this.calculateAddonsPrice(
-            car,
-            selectedAddons,
-            startDate,
-            endDate,
-            targetCurrency
-        );
+        const car = await this.carRepository.getCar(carId)
+
+        if (!car) {
+            throw new AppError({
+                message: "Car with identifier not found",
+                statusCode: ResponseCodes.NotFound
+            })
+        }
+
+        const basePrice = await this.calculateBasePrice(car, startDate, endDate); // CALCULATE BASE PRICE IN USD
+
+        // We need to add gas fee in case of crypto
+        let gasFee = 0
+
 
         const convertedBase = await this.currencyService.convert(
             basePrice.amount,
@@ -46,16 +59,55 @@ export class PricingService {
             targetCurrency
         );
 
-        return {
-            total: convertedBase + addonsPrice,
-            breakdown: {
-                base: basePrice,
-                addons: addonsPrice
+        const convertedBreakdowns = await Promise.all(basePrice.breakdown.map(async (item) => {
+            const converted = await this.currencyService.convert(item.amount, basePrice.currency, targetCurrency)
+
+            return {
+                ...item,
+                amount: converted
             }
-        };
+        }))
+
+        if (this.cryptoFactory.isCryptoCurrency(targetCurrency)) {
+            const processor = this.cryptoFactory.getProcessorFromCurrency(targetCurrency)
+            gasFee = await processor.estimateGasFee(targetCurrency) // no need to convert since we're getting the value already in target currency
+
+            convertedBreakdowns.push({
+                amount: gasFee,
+                count: 0,
+                duration: 0,
+                unit: 'gas fee'
+            })
+        }
+
+        return new IReturnValue({
+            message: "Success",
+            success: true,
+            data: {
+                total: convertedBase + gasFee, // add gas fee to the calculated price
+                breakdown: {
+                    base: {
+                        amount: convertedBase + gasFee,
+                        currency: targetCurrency,
+                        breakdown: convertedBreakdowns
+                    },
+                    // When we integrate dynamic discounts and addons, we can add the properties here
+                }
+            }
+        })
+
     }
 
-    private async calculateBasePrice(car: Car, start: Date, end: Date) {
+    private async calculateBasePrice(car: Car, start: Date, end: Date): Promise<{
+        amount: number,
+        currency: SupportedCurrencies,
+        breakdown: {
+            unit: string,
+            duration: number,
+            count: number,
+            amount: number
+        }[]
+    }> {
         const durationDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
         const pricings = await this.pricingRepository.find({
             where: { car: { id: car.id } },
@@ -64,7 +116,12 @@ export class PricingService {
 
         let remaining = durationDays;
         let total = 0;
-        const breakdown: any[] = [];
+        const breakdown: {
+            unit: string,
+            duration: number,
+            count: number,
+            amount: number
+        }[] = [];
 
         for (const unit of this.unitHierarchy) {
             const unitPricings = pricings.filter(p => p.unit === unit);
@@ -77,13 +134,16 @@ export class PricingService {
             const count = Math.floor(remaining / unitDays);
 
             if (count > 0) {
-                total += count * bestPricing.price;
+                const converted = await this.currencyService.convert(bestPricing.price, bestPricing.currency, SupportedFiatCurrencies.USD) // convert all pricings to USD in order to get a unique base for all
+                total += count * converted;
+
                 remaining -= count * unitDays;
+
                 breakdown.push({
                     unit: bestPricing.unit,
                     duration: bestPricing.duration,
                     count,
-                    amount: count * bestPricing.price
+                    amount: count * converted
                 });
             }
 
@@ -92,18 +152,22 @@ export class PricingService {
 
         if (remaining > 0) {
             const dailyPricing = pricings.find(p => p.unit === 'day') || pricings[0];
-            total += remaining * dailyPricing.price;
+
+            const converted = await this.currencyService.convert(dailyPricing.price, dailyPricing.currency, SupportedFiatCurrencies.USD) //converts pricing to usd base price
+
+            total += remaining * converted;
+
             breakdown.push({
                 unit: 'day',
                 duration: 1,
                 count: remaining,
-                amount: remaining * dailyPricing.price
+                amount: remaining * converted
             });
         }
 
         return {
             amount: total,
-            currency: pricings[0]?.currency || 'USD',
+            currency: SupportedFiatCurrencies.USD,
             breakdown
         };
     }
@@ -121,47 +185,5 @@ export class PricingService {
 
     private getDaysFromPricing(pricing: RentalPricing): number {
         return pricing.duration * this.unitDaysMap[pricing.unit];
-    }
-
-    private async calculateAddonsPrice(
-        car: Car,
-        selectedAddons: Booking['selectedAddons'],
-        start: Date,
-        end: Date,
-        targetCurrency: string
-    ) {
-        const rentalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
-        let totalAddons = 0;
-
-        if (selectedAddons?.length) {
-            for (const selection of selectedAddons) {
-                const addon = car?.availableAddons?.find(a => a.id === selection.addonId);
-                if (!addon) continue;
-
-                const priceOption = addon.priceOptions[selection.priceOptionIndex];
-                if (!priceOption) continue;
-
-                let amount = priceOption.amount;
-
-                // Calculate based on pricing type
-                if (priceOption.type === 'per_day') {
-                    amount *= rentalDays;
-                }
-
-                // Apply quantity if applicable
-                if (selection.quantity) {
-                    amount *= selection.quantity;
-                }
-
-                // Convert currency
-                totalAddons += await this.currencyService.convert(
-                    amount,
-                    priceOption.currency,
-                    targetCurrency
-                );
-            }
-        }
-
-        return totalAddons;
     }
 }

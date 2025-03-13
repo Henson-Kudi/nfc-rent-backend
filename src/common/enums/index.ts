@@ -1,3 +1,19 @@
+export enum SupportedFiatCurrencies {
+  USD = 'USD',
+  AED = 'AED',
+  EUR = 'EUR',
+}
+
+export enum SupportedCryptoCurrencies {
+  TRON = 'TRX',
+  TRC20 = 'TRC20',
+  ETH = 'ETH',
+  ERC20 = 'ERC20',
+}
+
+
+export type SupportedCurrencies = SupportedCryptoCurrencies | SupportedFiatCurrencies
+
 export enum ResponseCodes {
   BadRequest = 400,
   UnAuthorised = 401,

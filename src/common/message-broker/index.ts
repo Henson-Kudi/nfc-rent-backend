@@ -32,6 +32,7 @@ export class MessageBroker implements IMessageBroker {
       await this.publisher.publish(channel, JSON.stringify(message));
       logger.info(`Message published to channel: ${channel}`);
     } catch (err) {
+      logger.error(`Failed to publish ${channel} event`)
       logger.error('Error publishing message to Redis:', err);
     }
   }

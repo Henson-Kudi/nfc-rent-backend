@@ -1,5 +1,4 @@
-import { LoginType } from '@prisma/client';
-import { OTPType } from '@/common/enums';
+import { LoginType, OTPType } from '@/common/enums';
 import Joi from 'joi';
 import { passwordRegex } from '@/common/utils';
 

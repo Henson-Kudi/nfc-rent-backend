@@ -9,10 +9,9 @@ import { OTPVERIFICATIONTYPES } from '../../domain/enums';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
 import { RoleRepository } from '../../infrastructure/repositories/role.repository';
 import slugify from '@/common/utils/slugify';
-import { Role } from '@/common/entities';
+import { Role, User } from '@/common/entities';
 import { In } from 'typeorm';
 import { instanceToPlain } from 'class-transformer';
-import { User } from '@prisma/client';
 
 class RegisterUseCase
   implements

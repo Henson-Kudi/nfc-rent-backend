@@ -1,9 +1,9 @@
-import { TOTPStatus } from '@prisma/client';
 import { IReturnValue } from '@/common/utils';
 import { Request } from 'express';
 import { GeneratedSecret } from 'speakeasy';
 import Container from 'typedi';
 import { AuthService } from '@/modules/auth/application/services/auth.service';
+import { TOTPStatus } from '@/common/enums';
 
 class EnableTOTPController
   implements

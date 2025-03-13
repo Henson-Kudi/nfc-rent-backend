@@ -49,14 +49,24 @@ export class BookingDto extends BaseDto {
     priceBreakdown?: Record<string, any>;
 }
 
-export class CreateBookingDto{
+export class CreateBookingDto {
     locale?: SupportedLocales;
     userId!: string;
     driver!: string | CreateDriverDto
     carId!: string;
     pickupDate!: DateInputType;
     returnDate!: DateInputType;
-    totalAmount!: number;
+    pricing!: {
+        total: number
+        breakdown: {
+            base: {
+                amount: number,
+                currency: string,
+                breakdown: Record<string, unknown>[]
+            },
+            // When we integrate dynamic discounts and addons, we can add the properties here
+        }
+    };
 
     paymentData!: CreatePaymentDto
 
@@ -65,5 +75,4 @@ export class CreateBookingDto{
         priceOptionIndex: number; // ADDON HAS A LIST OF PRICES. THIS INDEX REFERS TO THE SELECTED PRICE INDEX
         quantity?: number;
     }[];
-    priceBreakdown?: Record<string, unknown>;
 }

@@ -1,4 +1,4 @@
-import { OTPType } from '@/common/enums';
+import { LoginType, OTPType } from '@/common/enums';
 import Joi from 'joi';
 import {
   RequestOTPSchema,
@@ -8,7 +8,6 @@ import {
   RegisterUserSchema,
   LogoutSchema,
 } from '@/modules/auth/utils/validations/otp';
-import { LoginType } from '@prisma/client';
 
 export class RegisterUserDto {
   fullName: string;

@@ -1,9 +1,8 @@
 import envConf from "@/config/env.conf";
 import Stripe from "stripe";
 import { Service } from "typedi";
-import { Booking, User } from "../entities";
 import { AppError } from "../utils";
-import { ResponseCodes } from "../enums";
+import { ResponseCodes, SupportedCurrencies } from "../enums";
 
 @Service()
 export class StripeService {
@@ -28,18 +27,19 @@ export class StripeService {
     }
 
     createCheckoutSession(payload: {
-        bookingId?: string,
-        successUrl?: string,
-        cancelUrl?: string,
-        clientId?: string,
-        clientEmail?: string,
+        bookingId?: string
+        successUrl?: string
+        cancelUrl?: string
+        clientId?: string
+        clientEmail?: string
+        currency: SupportedCurrencies
         lineItems: { productName: string, productDescription?: string, unitPrice: number, quantity?: number }[]
     }, isManualCapture: boolean = true) {
 
         const sessionConf: Stripe.Checkout.SessionCreateParams = {
             payment_method_types: isManualCapture ? ['card'] : ['card', 'link', 'samsung_pay'],
             mode: 'payment',
-            line_items: this.createLineItems(payload.lineItems),
+            line_items: this.createLineItems(payload.lineItems, payload.currency),
             success_url: payload.successUrl && `${payload.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: payload.cancelUrl,
             customer_email: payload.clientEmail,

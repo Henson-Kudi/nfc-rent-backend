@@ -25,7 +25,8 @@ const envConf = {
     'YzIffRyYQGbp1oDbrk1eyW5xUiUUv40RY7PBFC730oE=',
   DATABASE_URL: process?.env?.DATABASE_URL || '',
   STRIPE_SECRET_KEY: process.env?.STRIPE_SECRET_KEY || '',
-  FRONTEND_URL: process?.env?.FRONTEND_URL || ''
+  FRONTEND_URL: process?.env?.FRONTEND_URL || '',
+  EXCHANGE_RATES_DATA_API: process.env?.EXCHANGE_RATES_DATA_API || ''
 };
 
 export default envConf;

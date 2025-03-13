@@ -1,8 +1,6 @@
-import { Notification } from '@prisma/client';
-
 export type NotificationType = 'SMS' | 'EMAIL' | 'PUSH';
 
-export type NotificationPayload = Partial<Notification> & {
+export type NotificationPayload = Partial<any> & {
   receipient: string;
   receipientId: string;
   content: string;

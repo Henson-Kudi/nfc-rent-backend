@@ -12,6 +12,7 @@ import { dataSource, initializeDb, runMigrations } from './common/database';
 import { initializeDI } from './loaders/di';
 import { seedModules } from './seeders/resources.seeder';
 import { seedDefaultRoles } from './seeders/role.seeder';
+import { HttpService } from './common/services/http.service';
 
 // Run application
 (async () => {
@@ -27,6 +28,14 @@ import { seedDefaultRoles } from './seeders/role.seeder';
   // const userRole = await roleRepo.findOne({ where: { email: 'amahkudi2@gmail.com' }, relations: ['roles'] })
 
   // console.log(userRole)
+
+  // const fiat = await new HttpService().get('https://api.apilayer.com/exchangerates_data/latest?base=USD&symbols=EUR,GBP,USDT', {
+  //   headers: {
+  //     apikey: 'J7ow4oU1eXaGIoe3ovmUCSvlAeUv4Thp'
+  //   }
+  // })
+
+  // console.log(fiat)
 
   // Make sure to seed modules before seeding roles
   // await seedModules(datsSource)

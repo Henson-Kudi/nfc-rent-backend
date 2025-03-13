@@ -1,10 +1,9 @@
+import { User } from '@/common/entities';
 import { OTPType } from '@/common/enums';
 import logger from '@/common/utils/logger';
 import generateRandomNumber from '@/common/utils/randomNumber';
 import notificationsService from '@/modules/notifications/application/services';
 import { SendNotificationDTO } from '@/modules/notifications/domain';
-import { User } from '@prisma/client';
-import moment from 'moment';
 
 type OneTimeOtpParams = {
   otp: string;

@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, OneToOne } from "typeorm";
 import { Base } from "../base";
-import { Booking } from "..";
-import { PaymentStatus } from "@/common/enums";
+import { AddressMapping, Booking } from "..";
+import { PaymentStatus, SupportedCryptoCurrencies, SupportedCurrencies, SupportedFiatCurrencies } from "@/common/enums";
 
 @Entity()
 export class Payment extends Base {
@@ -9,11 +9,15 @@ export class Payment extends Base {
     @JoinColumn()
     booking!: Booking;
 
+    @OneToOne(() => AddressMapping, (mapper) => mapper.payment)
+    @JoinColumn()
+    addressMap!: AddressMapping;
+
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     amount!: number;
 
-    @Column()
-    currency!: string;
+    @Column({ enum: [...Object.values(SupportedCryptoCurrencies), ...Object.values(SupportedFiatCurrencies)], type: 'enum' })
+    currency!: SupportedCurrencies;
 
     @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
     status!: PaymentStatus;
@@ -32,4 +36,7 @@ export class Payment extends Base {
 
     @Column({ type: 'jsonb', nullable: true })
     paymentMetadata?: Record<string, any>;
+
+    @Column({ type: 'boolean', default: false })
+    isCrypto?: boolean;
 }

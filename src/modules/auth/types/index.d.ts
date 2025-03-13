@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { User } from "@/common/entities";
 
 export type UserWithVerificationType = User & {
   verificationType: OTPVERIFICATIONTYPES;

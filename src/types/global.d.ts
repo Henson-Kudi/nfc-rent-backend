@@ -4,6 +4,8 @@ type NonEmptyArray<T> = [T, ...T[]];
 
 type SupportedLocales = 'en' | 'fr' | 'es' | 'zh' | 'it' | 'ar' | 'ru';
 
+type SupportedCryptoNetworks = 'tron' | 'ethereum'
+
 type PaginationOptions = {
   page?: number;
   limit?: number;
@@ -139,6 +141,7 @@ declare namespace NodeJS {
     DATABASE_URL?: string;
     STRIPE_SECRET_KEY?: string;
     FRONTEND_URL?: string
+    EXCHANGE_RATES_DATA_API?: string
   }
 }
 
@@ -204,7 +207,7 @@ type CarFilter = {
   owner?: string[]; //List of user ids for owner
 };
 
-type GetCarsFilter = CarFilter & Partial<CarFilterOptions> & {page?: number}
+type GetCarsFilter = CarFilter & Partial<CarFilterOptions> & { page?: number }
 
 interface CarMedia extends MediaItem {
   title?: string;
@@ -438,3 +441,30 @@ interface UpdateFeatureTranslation extends TranslationEntityDTO {
 }
 
 type EnumTranslationManager = Record<SupportedLocales, Record<string, unknown>>
+
+
+// BOOKINGS
+type GetBookingOptions = {
+  locale?: SupportedLocales
+  page?: number
+  limit?: number
+  relations?: {
+    payment?: boolean | { addressMap: boolean }
+    user?: boolean
+    driver?: boolean
+    car?: boolean
+    selectedAddons?: boolean
+  } | ['payment' | 'user' | 'driver' | 'car' | 'payment' | 'selectedAddons'],
+}
+
+type GetBookingsFilter = {
+  user?: string[]
+  driver?: string[]
+  car?: string[]
+  pickupDate?: DateFilter
+  returnDate?: DateFilter
+  totalAmount?: NumberFilter
+  status?: string[]
+}
+
+type GetBookingsQuery = GetBookingOptions & GetBookingsFilter

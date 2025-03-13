@@ -1,4 +1,5 @@
 import {
+    AddressMapping,
     CarBrandTranslation,
     CarFeatureTranslation,
     CarModelTranslation,
@@ -48,6 +49,8 @@ import { ModelTranslationsRepository } from '@/modules/cars/infrastrucure/model-
 import { CarModelRepositoryFacrory, ModelsRepositoryToken } from '@/modules/cars/infrastrucure/model.repository';
 import { Container } from 'typedi';
 import { DataSource } from 'typeorm';
+import { CryptoPaymentFactory } from '@/common/services/crypto-payment.service';
+import { DepositsRepository } from '@/modules/booking/application/repository/deposit.repository';
 
 export const initializeDI = (dataSource: DataSource) => {
     // Register TypeORM repositories
@@ -61,6 +64,8 @@ export const initializeDI = (dataSource: DataSource) => {
         ResourceRepository,
         new ResourceRepository(Resource, dataSource.manager)
     );
+
+    Container.set(DepositsRepository, dataSource.getRepository(AddressMapping))
 
     Container.set(
         CarsRepositoryToken,
@@ -112,6 +117,24 @@ export const initializeDI = (dataSource: DataSource) => {
     Container.set(TokenManagerToken, new TokenManager());
     Container.set(TOTPToken, new TOTP());
     Container.set(GoogleServicesManagerToken, new GoogleServicesManager());
+
+    // Container.set(CryptoPaymentFactory, new CryptoPaymentFactory({
+    //     ethereum: {
+    //         hdMnemonic: '',
+    //         mainWalletAddress: '',
+    //         rpcUrl: '',
+    //         usdtContractAddress: '',
+    //         wsUrl: '',
+    //         basePath: ''
+    //     },
+    //     tron: {
+    //         fullHost: '',
+    //         hdMnemonic: '',
+    //         mainWalletAddress: '',
+    //         usdtContractAddress: '',
+    //         basePath: ''
+    //     }
+    // }, Container.get(DepositsRepository)))
 
     // Register services
     Container.set(
