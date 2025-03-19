@@ -29,7 +29,6 @@ export class ContractViolationDto extends BaseDto {
 }
 
 export class CreateContractVoilationDto {
-    contractId!: string
     violationType!: ContractViolationType
     amount!: number
     totalUnits!: number

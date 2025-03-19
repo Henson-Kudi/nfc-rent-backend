@@ -55,7 +55,7 @@ export class CreateContractDto {
     clientSignature?: string;
     additionalDriverSign?: string;
     damages?: CarDamage[];
-    violations?: Omit<CreateContractVoilationDto, 'contractId'>[];
+    violations?: CreateContractVoilationDto[];
     fuelLevelPickup!: number;
     fuelLevelReturn?: number;
     mileageAtPickup!: number;

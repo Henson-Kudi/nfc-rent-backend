@@ -3,7 +3,7 @@ import { CreateContractDto } from "@/common/dtos/contract.dto";
 import { ContractViolationType, MediaType } from "@/common/enums";
 import Joi, { AsyncValidationOptions } from "joi";
 
-const CreateContractViolationSchema = Joi.object<Omit<CreateContractVoilationDto, 'contractId'>>({
+const CreateContractViolationSchema = Joi.object<CreateContractVoilationDto>({
     amount: Joi.number().min(0).precision(2).required(),
     description: Joi.string().optional().allow(null),
     evidences: Joi.array().items(Joi.object<CreateContractVoilationDto['evidences'][0]>({
@@ -46,7 +46,12 @@ export const NewContractSchema = Joi.object<CreateContractDto>({
 
 }).unknown();
 
-export const validateCreateContract = (dto: CreateContractDto, options?: AsyncValidationOptions) => NewContractSchema.validateAsync(dto, {
+export const validateCreateContract = (dto: Partial<CreateContractDto>, options?: AsyncValidationOptions) => NewContractSchema.validateAsync(dto, {
+    abortEarly: false,
+    ...(options || {}),
+})
+
+export const validateCreateContractVoilation = (dto: Partial<CreateContractVoilationDto>, options?: AsyncValidationOptions) => CreateContractViolationSchema.validateAsync(dto, {
     abortEarly: false,
     ...(options || {}),
 })

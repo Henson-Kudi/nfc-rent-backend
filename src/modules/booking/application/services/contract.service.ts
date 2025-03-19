@@ -3,13 +3,14 @@ import { ContractRepository, ContractViolationRepository } from "../repository/c
 import { MessageBrokerToken } from "@/common/message-broker";
 import { CreateContractDto } from "@/common/dtos/contract.dto";
 import { Contract, User } from "@/common/entities";
-import { validateCreateContract } from "../../utils/validation/contract.validation";
-import { AppError, IReturnValue } from "@/common/utils";
+import { validateCreateContract, validateCreateContractVoilation } from "../../utils/validation/contract.validation";
+import { AppError, IReturnValue, IReturnValueWithPagination } from "@/common/utils";
 import { ResponseCodes } from "@/common/enums";
 import { BookingRepository } from "../repository/booking.repository";
 import { BookingEvents } from "@/common/message-broker/events/booking.event";
-import { Between, FindOptionsWhere, ILike, In, LessThan, LessThanOrEqual, MoreThan, MoreThanOrEqual, } from "typeorm";
+import { Between, FindOptionsWhere, ILike, In, LessThanOrEqual, MoreThanOrEqual, } from "typeorm";
 import { isValid } from "date-fns";
+import { CreateContractVoilationDto } from "@/common/dtos/contract-violation.dto";
 
 @Service()
 export class ContractService {
@@ -281,19 +282,209 @@ export class ContractService {
                 booking: {
                     user: true,
                     car: true
-                }, violations: true
+                },
+                violations: true
             },
             skip,
             take: limit
         })
 
-        return new IReturnValue({
+        return new IReturnValueWithPagination({
             success: true,
             message: 'Contracts retrieved successfully',
+            data: contracts,
+            limit,
+            page,
+            total: count,
+        })
+    }
+
+    async addViolationToContract(contractId: string, payload: CreateContractVoilationDto, actor: User) {
+        const validPayload = await validateCreateContractVoilation(payload)
+
+        const contract = await this.contractRepository.findOne({ where: { id: contractId } })
+
+        if (!contract) {
+            throw new AppError({
+                message: 'Contract with identifier not found',
+                statusCode: ResponseCodes.NotFound
+            })
+        }
+
+        const violation = await this.violationsRepository.manager.transaction(async (manager) => {
+            const ViolationRepo = manager.getRepository(this.violationsRepository.target)
+            const ContractRepo = manager.getRepository(this.contractRepository.target)
+
+            const totalCharge = (validPayload?.amount * validPayload?.totalUnits) + (validPayload?.processingFee || 0)
+
+            // Update contract with new violation details
+            contract.totalViolationCharges = (contract.totalViolationCharges || 0) + totalCharge
+            contract.totalDeductions = (contract.totalDeductions || 0) + (validPayload?.isDeducted ? totalCharge : 0)
+            contract.refundAmount = (contract.totalViolationCharges || 0) - (contract.totalDeductions || 0)
+            await ContractRepo.save(contract)
+
+            // Save violation
+            const violation = await ViolationRepo.save(ViolationRepo.create({
+                description: validPayload?.description || '',
+                violationType: validPayload?.violationType,
+                amount: validPayload?.amount || 0,
+                totalUnits: validPayload?.totalUnits || 1,
+                processingFee: validPayload?.processingFee || 0,
+                evidences: validPayload.evidences,
+                isPaid: validPayload?.isPaid,
+                isDeducted: validPayload?.isDeducted,
+                violationDate: validPayload?.violationDate ? new Date(validPayload?.violationDate) : new Date(),
+                totalCharge: totalCharge || 0,
+                contract: contract
+            }))
+
+            return violation
+        })
+
+        // Publish event to message broker
+        this.messageBroker.publishMessage(BookingEvents.contract.voilations.created, {
             data: {
-                contracts,
-                count
+                violation,
+                actor
             }
+        })
+
+        return new IReturnValue({
+            success: true,
+            message: 'Contract violation created successfully',
+            data: violation
+        })
+    }
+
+    async updateContractVoilation(id: string, payload: Partial<CreateContractVoilationDto>, actor: User) {
+        const validPayload = await validateCreateContractVoilation(payload, {
+            presence: 'optional',
+        })
+
+        const violation = await this.violationsRepository.findOne({ where: { id }, relations: { contract: true } })
+
+        if (!violation || !violation.contract) {
+            throw new AppError({
+                message: 'Contract violation with identifier not found',
+                statusCode: ResponseCodes.NotFound
+            })
+        }
+
+        const updated = await this.violationsRepository.manager.transaction(async (manager) => {
+            const ViolationRepo = manager.getRepository(this.violationsRepository.target)
+            const ContractRepo = manager.getRepository(this.contractRepository.target)
+
+            // Update contract with new violation details
+            let totalCharge = violation?.totalCharge || 0
+
+            if (validPayload?.amount || validPayload?.totalUnits || validPayload?.processingFee) {
+                totalCharge = ((validPayload?.amount || violation.amount) * (validPayload?.totalUnits || violation.totalUnits)) + (validPayload?.processingFee || violation.processingFee || 0)
+
+                const exisitingCharge = (violation?.amount * violation?.totalUnits) + (violation?.processingFee || 0)
+
+                violation.contract.totalViolationCharges = (violation.contract.totalViolationCharges || 0) + totalCharge - exisitingCharge
+                violation.contract.totalDeductions = (violation.contract.totalDeductions || 0) + (validPayload?.isDeducted ? totalCharge - exisitingCharge : 0)
+
+                violation.contract.refundAmount = (violation.contract.totalViolationCharges || 0) - (violation.contract.totalDeductions || 0)
+
+                await ContractRepo.save(violation.contract)
+            }
+
+            // Save violation
+            return await ViolationRepo.save(ViolationRepo.merge(violation!, {
+                description: validPayload?.description || violation?.description || '',
+                violationType: validPayload?.violationType || violation?.violationType,
+                amount: validPayload?.amount || violation?.amount || 0,
+                totalUnits: validPayload?.totalUnits || violation?.totalUnits || 1,
+                processingFee: validPayload?.processingFee || violation?.processingFee || 0,
+                evidences: validPayload.evidences,
+                isPaid: validPayload?.isPaid,
+                isDeducted: validPayload?.isDeducted,
+                violationDate: validPayload?.violationDate ? new Date(validPayload?.violationDate) : new Date(),
+                totalCharge: totalCharge || 0,
+            }))
+        })
+
+        // Publish event to message broker
+        this.messageBroker.publishMessage(BookingEvents.contract.voilations.updated, {
+            data: {
+                violation: updated,
+                actor
+            }
+        })
+
+        return new IReturnValue({
+            success: true,
+            message: 'Contract violation updated successfully',
+            data: updated
+        })
+    }
+
+    async deleteContractVoilation(id: string, actor: User) {
+        const violation = await this.violationsRepository.findOne({ where: { id }, relations: { contract: true } })
+
+        if (!violation || !violation.contract) {
+            throw new AppError({
+                message: 'Contract violation with identifier not found',
+                statusCode: ResponseCodes.NotFound
+            })
+        }
+
+        await this.violationsRepository.remove(violation)
+
+        // Update contract with new violation details
+        violation.contract.totalViolationCharges = (violation.contract.totalViolationCharges || 0) - (violation?.totalCharge || 0)
+        violation.contract.totalDeductions = (violation.contract.totalDeductions || 0) - (violation?.isDeducted ? (violation?.totalCharge || 0) : 0)
+        violation.contract.refundAmount = (violation.contract.totalViolationCharges || 0) - (violation.contract.totalDeductions || 0)
+
+        await this.contractRepository.save(violation.contract)
+
+        // Publish event to message broker
+        this.messageBroker.publishMessage(BookingEvents.contract.voilations.deleted, {
+            data: {
+                violation,
+                actor
+            }
+        })
+
+        return new IReturnValue({
+            success: true,
+            message: 'Contract violation deleted successfully',
+            data: violation
+        })
+    }
+
+    async bulkDeleteContractVoilations(ids: string[], actor: User) {
+        const violations = await this.violationsRepository.find({ where: { id: In(ids) }, relations: { contract: true } })
+
+        if (!violations?.length) {
+            throw new AppError({
+                message: 'Contract violations with identifiers not found',
+                statusCode: ResponseCodes.NotFound
+            })
+        }
+
+        const contract = violations[0].contract
+
+        await this.violationsRepository.remove(violations)
+        // Update contract with new violation details
+        contract.totalViolationCharges = (contract.totalViolationCharges || 0) - (violations?.map(itm => itm?.totalCharge || 0).reduce((a, b) => a + b, 0) || 0)
+        contract.totalDeductions = (contract.totalDeductions || 0) - (violations?.filter(itm => itm.isDeducted)?.map(itm => itm?.totalCharge || 0).reduce((a, b) => a + b, 0) || 0)
+        contract.refundAmount = (contract.totalViolationCharges || 0) - (contract.totalDeductions || 0)
+        await this.contractRepository.save(contract)
+
+        // Publish event to message broker
+        this.messageBroker.publishMessage(BookingEvents.contract.voilations.deleted, {
+            data: {
+                violations,
+                actor
+            }
+        })
+
+        return new IReturnValue({
+            success: true,
+            message: 'Contract violations deleted successfully',
+            data: violations
         })
     }
 
