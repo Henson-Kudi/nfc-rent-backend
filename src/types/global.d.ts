@@ -11,6 +11,36 @@ type PaginationOptions = {
   limit?: number;
 };
 
+type CalculatedPrice = {
+  total: number, // add gas fee to the calculated price
+  breakdown: {
+    base: {
+      amount: number,
+      currency: SupportedCurrencies,
+      breakdown: {
+        amount: number;
+        unit: string;
+        duration: number;
+        count: number;
+      }[]
+
+    }
+    securityDeposit?: {
+      amount: number,
+      currency: SupportedCurrencies,
+      breakdown: {
+        amount: number;
+        unit: string;
+        duration: number;
+        count: number;
+      }[]
+
+    }
+    // When we integrate dynamic discounts and addons, we can add the properties here
+  }
+  currency: SupportedCurrencies
+}
+
 type NumberFilter = {
   min?: number
   max?: number
@@ -140,8 +170,27 @@ declare namespace NodeJS {
     DATABASE_SERVER_URL?: string;
     DATABASE_URL?: string;
     STRIPE_SECRET_KEY?: string;
+    STRIPE_WEBHOOK_SECRET?: string;
     FRONTEND_URL?: string
     EXCHANGE_RATES_DATA_API?: string
+    ETH_MNEMONIC?: string
+    ETH_RPC_URL?: string
+    ETH_USDT_CONTRACT_ADDRESS?: string
+    ETH_WS_URL?: string
+    ETH_BASE_PATH?: string
+    TRON_FULL_HOST?: string
+    TRON_FULL_HOST_API_KEY?: string
+    TRON_MNEMONIC?: string
+    TRON_MAIN_WALLET_ADDRESS?: string
+    TRON_USDT_CONTRACT_ADDRESS?: string
+    TRON_BASE_PATH?: string
+    TRON_PRIVATE_KEY?: string
+    BITPAY_API_KEY?: string
+    BITPAY_API_URL?: string
+    API_BASE_URL?: string
+    COINBASE_API_URL?: string
+    COINBASE_API_KEY?: string
+    COINBASE_WEBHOOK_KEY?: string
   }
 }
 
@@ -220,6 +269,7 @@ interface RentalPricing {
   unit: CarPricingUnit;
   price: number;
   currency: string; // Maybe we should have a enum of supported currencies and have validation to check if currency is valid fiat or crypto currency
+  mileageLimit: number // mileage limit in KM
 }
 
 interface CarDocument {
@@ -249,6 +299,7 @@ type CarEngineSpecs = {
   range?: number;
   acceleration: number;
   topSpeed: number;
+  size: number
 }
 
 type CarOwnerDetail = {
@@ -287,7 +338,8 @@ interface CreateCarDTO {
   rentalPricings?: RentalPricing[];
   documents?: CarDocument[];
   owner?: CarOwnerDetail;
-  translations: NonEmptyArray<CarTranslationDTO>// brand must have at least data in english since english is the default language
+  translations: NonEmptyArray<CarTranslationDTO>;// brand must have at least data in english since english is the default language
+  securityDeposit: { currency: SupportedCurrencies, amount: number }
 
 }
 
@@ -468,3 +520,37 @@ type GetBookingsFilter = {
 }
 
 type GetBookingsQuery = GetBookingOptions & GetBookingsFilter
+
+type CarDamage = {
+    policeReport: string // url to pdf file of police report of damage
+    images: string[] // images of damage areas
+    title: string // Name of damage part
+    description?: string // Description of the damaged part (if any)
+    position: { //Position of the damage on the 3D rendered car
+        x: number
+        y: number
+        z?: number
+    }
+}
+
+type GetContractsFilter = {
+  search?: string
+  user?: string[]
+  driver?: string[]
+  car?: string[]
+  pickupDate?: DateFilter
+  returnDate?: DateFilter
+  totalAmount?: NumberFilter
+  status?: string[]
+  createdAt?: DateFilter
+  signedAt?: DateFilter
+  booking?: string[]
+  id?: string[]
+  number?: string[]
+}
+
+type GetContractsOptions = {
+  locale?: SupportedLocales
+} & PaginationOptions
+
+type GetContractsQuery = GetContractsOptions & GetContractsFilter

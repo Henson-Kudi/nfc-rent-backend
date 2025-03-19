@@ -4,8 +4,11 @@ import {
     CarFeatureTranslation,
     CarModelTranslation,
     CarTranslation,
+    Driver,
     OTP,
+    Payment,
     Permission,
+    RentalPricing,
     Resource,
     Role,
     Session,
@@ -49,12 +52,28 @@ import { ModelTranslationsRepository } from '@/modules/cars/infrastrucure/model-
 import { CarModelRepositoryFacrory, ModelsRepositoryToken } from '@/modules/cars/infrastrucure/model.repository';
 import { Container } from 'typedi';
 import { DataSource } from 'typeorm';
-import { CryptoPaymentFactory } from '@/common/services/crypto-payment.service';
 import { DepositsRepository } from '@/modules/booking/application/repository/deposit.repository';
+import { BookingRepositoryFacrory, BookingsRepositoryToken } from '@/modules/booking/infrastructure/booking.repository';
+import { DriverRepository } from '@/modules/auth/infrastructure/repositories/driver.repository';
+import { BookingService } from '@/modules/booking/application/services/booking.service';
+import { PaymentService } from '@/modules/booking/application/services/payment.service';
+import { StripeService } from '@/common/services/stripe.service';
+import { PaymentRepository } from '@/modules/booking/application/repository/payment.repository';
+import { CurrencyService } from '@/common/services/currency.service';
+import { AddressMappingRepository, RentalPricingRepository } from '@/modules/booking/application/repository/booking.repository';
+import envConf from '@/config/env.conf';
+import { HttpService } from '@/common/services/http.service';
+import { PricingService } from '@/modules/booking/application/services/pricing.service';
+import { CryptoPaymentService } from '@/common/services/crypto.service';
 
 export const initializeDI = (dataSource: DataSource) => {
     // Register TypeORM repositories
+    Container.set(BookingsRepositoryToken, BookingRepositoryFacrory.create(dataSource))
     Container.set(UserRepository, dataSource.getRepository(User));
+    Container.set(RentalPricingRepository, dataSource.getRepository(RentalPricing));
+    Container.set(PaymentRepository, dataSource.getRepository(Payment));
+    Container.set(AddressMappingRepository, dataSource.getRepository(AddressMapping));
+    Container.set(DriverRepository, dataSource.getRepository(Driver));
     Container.set(RoleRepository, dataSource.getRepository(Role));
     Container.set(
         PermissionRepository,
@@ -118,24 +137,6 @@ export const initializeDI = (dataSource: DataSource) => {
     Container.set(TOTPToken, new TOTP());
     Container.set(GoogleServicesManagerToken, new GoogleServicesManager());
 
-    // Container.set(CryptoPaymentFactory, new CryptoPaymentFactory({
-    //     ethereum: {
-    //         hdMnemonic: '',
-    //         mainWalletAddress: '',
-    //         rpcUrl: '',
-    //         usdtContractAddress: '',
-    //         wsUrl: '',
-    //         basePath: ''
-    //     },
-    //     tron: {
-    //         fullHost: '',
-    //         hdMnemonic: '',
-    //         mainWalletAddress: '',
-    //         usdtContractAddress: '',
-    //         basePath: ''
-    //     }
-    // }, Container.get(DepositsRepository)))
-
     // Register services
     Container.set(
         PermissionService,
@@ -143,6 +144,91 @@ export const initializeDI = (dataSource: DataSource) => {
             Container.get(UserRepository),
             Container.get(PermissionRepository),
             Container.get(ResourceRepository)
+        )
+    );
+
+    Container.set(
+        CryptoPaymentService,
+        new CryptoPaymentService(Container.get(HttpService))
+    );
+
+    // Container.set(
+    //     CryptoPaymentFactory,
+    //     new CryptoPaymentFactory(
+    //         {
+    //             ethereum: {
+    //                 hdMnemonic: envConf.ethMnemonic,
+    //                 mainWalletAddress: envConf.ethWalletAddress,
+    //                 rpcUrl: envConf.ethRpcUrl,
+    //                 usdtContractAddress: envConf.ethUsdtContractAddress,
+    //                 wsUrl: envConf.ethWsUrl,
+    //                 basePath: envConf.ethBasePath
+    //             },
+    //             tron: {
+    //                 fullHost: envConf.tronFullHost,
+    //                 hdMnemonic: envConf.tronMnemonic,
+    //                 mainWalletAddress: envConf.tronMainWalletAddress,
+    //                 usdtContractAddress: envConf.tronUsdtContractAddress,
+    //                 basePath: envConf.tronBasePath,
+    //                 fullHostApiKey: envConf.tronFullHostApiKey,
+    //                 privateKey: envConf.tronPrivateKey
+    //             }
+    //         },
+    //         Container.get(AddressMappingRepository),
+    //         Container.get(CurrencyService)
+    //     )
+    // );
+
+    Container.set(
+        PaymentService,
+        new PaymentService(
+            Container.get(StripeService),
+            Container.get(CryptoPaymentService),
+            Container.get(PaymentRepository),
+            Container.get(MessageBrokerToken),
+        )
+    );
+
+    Container.set(
+        HttpService,
+        new HttpService()
+    );
+
+    Container.set(
+        CurrencyService,
+        new CurrencyService(
+            Container.get(HttpService)
+        )
+    );
+
+
+
+    Container.set(
+        StripeService,
+        new StripeService()
+    );
+
+    Container.set(
+        BookingService,
+        new BookingService(
+            Container.get(BookingsRepositoryToken),
+            Container.get(CarsRepositoryToken),
+            Container.get(UserRepository),
+            Container.get(DriverRepository),
+            Container.get(PaymentService),
+            Container.get(SerializerService),
+            Container.get(MessageBrokerToken),
+            Container.get(PricingService)
+        )
+    );
+
+    Container.set(
+        PricingService,
+        new PricingService(
+            Container.get(RentalPricingRepository),
+            Container.get(CurrencyService),
+            Container.get(CarsRepositoryToken),
+            Container.get(TokenManagerToken)
         )
     );
 

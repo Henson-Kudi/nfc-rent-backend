@@ -1,4 +1,4 @@
-import { Column, Entity, OneToOne } from "typeorm";
+import { BeforeInsert, BeforeUpdate, Column, Entity, OneToOne } from "typeorm";
 import { Base } from "../base";
 import { Payment } from "..";
 import { SupportedCryptoCurrencies } from "@/common/enums";
@@ -17,6 +17,8 @@ export class AddressMapping extends Base {
 
     @Column()
     derivationPath!: string
+    @Column('int')
+    derivationIndex!: number
 
     @Column()
     requestedAmount!: string
@@ -41,4 +43,10 @@ export class AddressMapping extends Base {
 
     @Column('timestamp')
     expiresAt!: Date
+
+    @BeforeInsert()
+    @BeforeUpdate()
+    getIndex() {
+        this.derivationIndex = parseInt(this.derivationPath.split('/').pop() || "0")
+    }
 }

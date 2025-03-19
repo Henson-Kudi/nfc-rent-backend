@@ -13,4 +13,6 @@ export class RentalPricingDto {
     price!: number;
     @Expose()
     currency!: string;
+    @Expose()
+    mileageLimit!: number;
 }

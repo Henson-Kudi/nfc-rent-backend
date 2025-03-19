@@ -1,7 +1,8 @@
-import { BookingStatus } from "@/common/enums";
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToOne } from "typeorm";
-import { Car, User, Payment, Driver, Addon } from "..";
+import { BookingStatus, SupportedCurrencies } from "@/common/enums";
+import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToMany, ManyToOne, OneToOne } from "typeorm";
+import { Car, User, Payment, Driver, Addon, Contract } from "..";
 import { Base } from "../base";
+import { generateAlphaNumNanoId } from "@/common/utils/custom-nano-id";
 
 @Entity()
 export class Booking extends Base {
@@ -23,11 +24,20 @@ export class Booking extends Base {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     totalAmount!: number;
 
+    @Column('jsonb')
+    securityDeposit!: {
+        currency: SupportedCurrencies;
+        amount: number;
+    };
+
     @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.PENDING })
     status!: BookingStatus;
 
     @OneToOne(() => Payment, (payment) => payment.booking)
     payment!: Payment;
+
+    @OneToOne(() => Contract, (contract) => contract.booking)
+    contract?: Contract;
 
     @ManyToMany(() => Addon, (addon) => addon.bookings)
     selectedAddons?: Addon[];
@@ -37,4 +47,16 @@ export class Booking extends Base {
 
     @Column({ type: 'jsonb', nullable: true })
     priceBreakdown?: Record<string, any>;
+
+    @Column({ unique: true })
+    number!: string;
+
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    plateNumber?: string;
+
+    @BeforeInsert()
+    @BeforeUpdate()
+    generayeBookingNumber() {
+        this.number = generateAlphaNumNanoId('NFC-BKN')
+    }
 }

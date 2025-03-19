@@ -1,11 +1,13 @@
 import { Car, RentalPricing } from "@/common/entities";
 import { Inject, Service } from "typedi";
-import { Repository } from "typeorm";
 import { CurrencyService } from "../../../../common/services/currency.service";
 import { ResponseCodes, SupportedCurrencies, SupportedFiatCurrencies } from "@/common/enums";
 import { AppError, IReturnValue } from "@/common/utils";
-import { CarRepository } from "@/modules/cars/infrastrucure/car.repository";
-import { CryptoPaymentFactory } from "@/common/services/crypto-payment.service";
+import { CarRepository, CarsRepositoryToken } from "@/modules/cars/infrastrucure/car.repository";
+import { RentalPricingRepository } from "../repository/booking.repository";
+import { validatePriceEstimator } from "../../utils/validation/pricing.validation";
+import { TokenManagerToken } from "@/common/jwt";
+import { JwtPayload } from "jsonwebtoken";
 
 @Service()
 export class PricingService {
@@ -23,21 +25,30 @@ export class PricingService {
 
     constructor(
         @Inject()
-        private pricingRepository: Repository<RentalPricing>,
+        private pricingRepository: RentalPricingRepository,
         @Inject()
         private currencyService: CurrencyService,
-        @Inject()
-        private cryptoFactory: CryptoPaymentFactory,
-        @Inject()
+        // @Inject()
+        // private cryptoFactory: CryptoPaymentFactory,
+        @Inject(CarsRepositoryToken)
         private carRepository: CarRepository,
+        @Inject(TokenManagerToken)
+        private jwtService: ITokenManager,
     ) { }
 
     async calculateTotalPrice(
         carId: string,
         startDate: Date,
         endDate: Date,
-        targetCurrency: SupportedCurrencies
-    ) {
+        targetCurrency: SupportedCurrencies = SupportedFiatCurrencies.USD
+    ): Promise<IReturnValue<CalculatedPrice & { token: string }>> {
+        // Validate data
+        await validatePriceEstimator({
+            carId,
+            startDate,
+            endDate,
+            currency: targetCurrency
+        })
         const car = await this.carRepository.getCar(carId)
 
         if (!car) {
@@ -59,6 +70,8 @@ export class PricingService {
             targetCurrency
         );
 
+        const securityDeposit = await this.currencyService.convert(car.securityDeposit.amount || 0, car.securityDeposit.currency || 'USD', targetCurrency)
+
         const convertedBreakdowns = await Promise.all(basePrice.breakdown.map(async (item) => {
             const converted = await this.currencyService.convert(item.amount, basePrice.currency, targetCurrency)
 
@@ -68,34 +81,59 @@ export class PricingService {
             }
         }))
 
-        if (this.cryptoFactory.isCryptoCurrency(targetCurrency)) {
-            const processor = this.cryptoFactory.getProcessorFromCurrency(targetCurrency)
-            gasFee = await processor.estimateGasFee(targetCurrency) // no need to convert since we're getting the value already in target currency
+        // if (this.cryptoFactory.isCryptoCurrency(targetCurrency)) {
+        //     const processor = this.cryptoFactory.getProcessorFromCurrency(targetCurrency)
+        //     gasFee = await processor.estimateGasFee(targetCurrency) // no need to convert since we're getting the value already in target currency
 
-            convertedBreakdowns.push({
-                amount: gasFee,
-                count: 0,
-                duration: 0,
-                unit: 'gas fee'
-            })
+        //     convertedBreakdowns.push({
+        //         amount: gasFee,
+        //         count: 0,
+        //         duration: 0,
+        //         unit: 'gas fee'
+        //     })
+        // }
+
+        const returnData: CalculatedPrice = {
+            total: convertedBase + gasFee + securityDeposit, // add gas fee to the calculated price
+            breakdown: {
+                base: {
+                    amount: convertedBase + gasFee,
+                    currency: targetCurrency,
+                    breakdown: convertedBreakdowns
+                },
+                securityDeposit: {
+                    amount: securityDeposit,
+                    currency: targetCurrency,
+                    breakdown: []
+                }
+                // When we integrate dynamic discounts and addons, we can add the properties here
+            },
+            currency: targetCurrency
         }
+
+        // We need to sign and cache this data so that we can verify that the client did not tamper with the value
+        const token = this.jwtService.generateToken('ACCESS_TOKEN', {
+            userId: '',
+            ...returnData
+        }, {
+            expiresIn: '1 hour' // this token expires after 1 hour
+        })
 
         return new IReturnValue({
             message: "Success",
             success: true,
             data: {
-                total: convertedBase + gasFee, // add gas fee to the calculated price
-                breakdown: {
-                    base: {
-                        amount: convertedBase + gasFee,
-                        currency: targetCurrency,
-                        breakdown: convertedBreakdowns
-                    },
-                    // When we integrate dynamic discounts and addons, we can add the properties here
-                }
+                ...returnData,
+                token
             }
         })
 
+    }
+
+    verifyPrice(price: string) {
+        const decoded = this.jwtService.verifyJwtToken('ACCESS_TOKEN', price) as JwtPayload & CalculatedPrice
+
+        return decoded as CalculatedPrice
     }
 
     private async calculateBasePrice(car: Car, start: Date, end: Date): Promise<{
@@ -153,16 +191,18 @@ export class PricingService {
         if (remaining > 0) {
             const dailyPricing = pricings.find(p => p.unit === 'day') || pricings[0];
 
-            const converted = await this.currencyService.convert(dailyPricing.price, dailyPricing.currency, SupportedFiatCurrencies.USD) //converts pricing to usd base price
+            if (dailyPricing) {
+                const converted = await this.currencyService.convert(dailyPricing.price, dailyPricing.currency, SupportedFiatCurrencies.USD) //converts pricing to usd base price
 
-            total += remaining * converted;
+                total += remaining * converted;
 
-            breakdown.push({
-                unit: 'day',
-                duration: 1,
-                count: remaining,
-                amount: remaining * converted
-            });
+                breakdown.push({
+                    unit: 'day',
+                    duration: 1,
+                    count: remaining,
+                    amount: remaining * converted
+                });
+            }
         }
 
         return {

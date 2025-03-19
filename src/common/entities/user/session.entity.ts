@@ -24,9 +24,6 @@ export class Session extends Base {
   @Column()
   expiresAt!: Date;
 
-  @Column()
-  isActive!: boolean;
-
   @Column({ nullable: true })
   loggedOutAt?: Date;
 

@@ -2,6 +2,7 @@ import 'dotenv/config';
 
 const envConf = {
   PORT: process.env.PORT || 5000,
+  apiBaseUrl: process.env?.API_BASE_URL || 'http://localhost:5000',
   rootDir: process.cwd(),
   NODE_ENV: process.env.NODE_ENV || 'development',
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -25,8 +26,33 @@ const envConf = {
     'YzIffRyYQGbp1oDbrk1eyW5xUiUUv40RY7PBFC730oE=',
   DATABASE_URL: process?.env?.DATABASE_URL || '',
   STRIPE_SECRET_KEY: process.env?.STRIPE_SECRET_KEY || '',
-  FRONTEND_URL: process?.env?.FRONTEND_URL || '',
-  EXCHANGE_RATES_DATA_API: process.env?.EXCHANGE_RATES_DATA_API || ''
+  STRIPE_WEBHOOK_SECRET: process.env?.STRIPE_WEBHOOK_SECRET || '',
+  FRONTEND_URL: process?.env?.FRONTEND_URL || 'http://localhost:3000',
+  EXCHANGE_RATES_DATA_API: process.env?.EXCHANGE_RATES_DATA_API || '',
+
+  ethMnemonic: process.env?.ETH_MNEMONIC || '',
+  ethWalletAddress: process.env.ETH_WALLET_ADDRESS || '',
+  ethRpcUrl: process.env.ETH_RPC_URL || '',
+  ethUsdtContractAddress: process.env.ETH_USDT_CONTRACT_ADDRESS || '',
+  ethWsUrl: process.env.ETH_WS_URL || '',
+  ethBasePath: process.env.ETH_BASE_PATH || '',
+
+  tronFullHost: process.env.TRON_FULL_HOST || '',
+  tronFullHostApiKey: process.env.TRON_FULL_HOST_API_KEY || '',
+  tronMnemonic: process.env.TRON_MNEMONIC || '',
+  tronMainWalletAddress: process.env.TRON_MAIN_WALLET_ADDRESS || '',
+  tronUsdtContractAddress: process.env.TRON_USDT_CONTRACT_ADDRESS || '',
+  tronBasePath: process.env.TRON_BASE_PATH || '',
+  tronPrivateKey: process.env.TRON_PRIVATE_KEY || '',
+  bitPay: {
+    baseUrl: process.env?.BITPAY_API_URL || '',
+    apiKey: process.env?.BITPAY_API_KEY || ''
+  },
+  coinbase: {
+    baseUrl: process.env?.COINBASE_API_URL || '',
+    apiKey: process.env?.COINBASE_API_KEY || '',
+    webhookKey: process.env?.COINBASE_WEBHOOK_KEY || ''
+  },
 };
 
 export default envConf;

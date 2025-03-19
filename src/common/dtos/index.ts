@@ -1,4 +1,6 @@
 export { BookingDto } from './booking.dto'
+export { ContractDto } from './contract.dto'
+export { ContractViolationDto } from './contract-violation.dto'
 export {
     CarBrandDto,
     CreateBrandDto,

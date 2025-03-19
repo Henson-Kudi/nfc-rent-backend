@@ -2,14 +2,20 @@ import { User } from '@/common/entities';
 import { OTPType } from '@/common/enums';
 import logger from '@/common/utils/logger';
 import generateRandomNumber from '@/common/utils/randomNumber';
+import { PasswordManagerToken } from '@/modules/auth/infrastructure/providers/password-manager';
+import { OTPRepository } from '@/modules/auth/infrastructure/repositories/otp.repository';
 import notificationsService from '@/modules/notifications/application/services';
 import { SendNotificationDTO } from '@/modules/notifications/domain';
+import moment from 'moment';
+import Container from 'typedi';
 
 type OneTimeOtpParams = {
   otp: string;
 };
 
 const handleUserLoginMessage: MessageHandler = async (message, channel) => {
+  const passwordManager = Container.get(PasswordManagerToken)
+  const OtpRepository = Container.get(OTPRepository)
   // generate otp code
   // hash the code
   // save in db
@@ -38,17 +44,16 @@ const handleUserLoginMessage: MessageHandler = async (message, channel) => {
 
   if (user?.requiresOtp) {
     const otpCode = generateRandomNumber(6);
-    // const hashedOtp = await passwordManager.encryptPassword(otpCode);
-    // const otpExpireAt = moment().add(15, 'minutes').toDate();
+    const hashedOtp = await passwordManager.encryptPassword(otpCode);
+    const otpExpireAt = moment().add(15, 'minutes').toDate();
 
     try {
-      // await oTPRepository.create({
-      //   data: {
-      //     expireAt: otpExpireAt,
-      //     token: hashedOtp,
-      //     userId: user.id,
-      //   },
-      // });
+      await OtpRepository.save(OtpRepository.create({
+        expireAt: otpExpireAt,
+        token: hashedOtp,
+        userId: user.id,
+        user
+      }));
       await notificationsService.sendNotification.execute<OneTimeOtpParams>(
         new SendNotificationDTO(
           'EMAIL',

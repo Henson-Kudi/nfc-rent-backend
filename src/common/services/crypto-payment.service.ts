@@ -1,12 +1,18 @@
 // payment-processor.ts
+import * as bip39 from "bip39";
+import * as ecc from 'tiny-secp256k1';
+import BIP32Factory, { BIP32Interface } from "bip32";
 import { ethers } from 'ethers';
-import { TronWeb } from 'tronweb';
+import { BigNumber, TronWeb } from 'tronweb';
 import { In, Repository } from 'typeorm';
 import { AddressMapping, Payment } from '../entities';
 import { Inject, Service } from 'typedi';
 import { SupportedCryptoCurrencies, SupportedCurrencies, SupportedFiatCurrencies } from '../enums';
 import { CurrencyService } from './currency.service';
 import logger from '../utils/logger';
+import { BroadcastReturn, ContractParamter, SignedTransaction } from "tronweb/lib/esm/types";
+
+const bip32 = BIP32Factory(ecc);
 
 interface IConfig {
     ethereum: {
@@ -23,24 +29,9 @@ interface IConfig {
         basePath?: string;
         mainWalletAddress: string;
         usdtContractAddress: string;
+        fullHostApiKey?: string;
+        privateKey: string
     };
-}
-
-async function getExchangeRate(fromCurrency: string, toCurrency: string): Promise<number> {
-    // Example: 1 ETH = 2000 USDT (replace with real API call)
-    const rates: Record<string, number> = {
-        'ETH:USDT-ERC20': 2000,
-        'USDT-ERC20:ETH': 0.0005,
-        'TRX:USDT-TRC20': 0.15,
-        'USDT-TRC20:TRX': 6.67,
-        'USD:ETH': 0.0005,
-        'ETH:USD': 2000,
-        'TRX:USDT': 0.23,
-        'USDT:TRX': 4.32,
-        'USD:TRX': 4.32,
-        'TRX:USD': 0.23,
-    };
-    return rates[`${fromCurrency}:${toCurrency}`] || 1;
 }
 
 interface CryptoPaymentProcessor {
@@ -77,8 +68,8 @@ class EthereumPaymentProcessor implements CryptoPaymentProcessor {
         this.ethWallet = ethers.Wallet.fromPhrase(config.ethereum.hdMnemonic).connect(this.ethProvider);
 
         // Tron setup
-        this.tronWeb = new TronWeb({ fullHost: config.tron.fullHost });
-        this.tronPrivateKey = TronWeb.fromMnemonic(config.tron.hdMnemonic).privateKey;
+        this.tronWeb = new TronWeb({ fullHost: config.tron.fullHost, headers: { "TRON-PRO-API-KEY": config.tron.fullHostApiKey } });
+        this.tronPrivateKey = TronWeb.fromMnemonic(config.tron.hdMnemonic).privateKey?.slice(2); //remove leading 0x
         this.tronWeb.setPrivateKey(this.tronPrivateKey);
 
         this.erc20Abi = [
@@ -263,8 +254,8 @@ class EthereumPaymentProcessor implements CryptoPaymentProcessor {
 class TronPaymentProcessor implements CryptoPaymentProcessor {
     private config: IConfig;
     private tronWeb: TronWeb;
-    private tronHdNode: ethers.HDNodeWallet;
     private activeSubscriptions: Map<string, { type: string; intervalId: NodeJS.Timeout }>;
+    private rootNode?: BIP32Interface
 
     constructor(
         config: IConfig,
@@ -276,15 +267,10 @@ class TronPaymentProcessor implements CryptoPaymentProcessor {
         this.config = config;
         this.activeSubscriptions = new Map();
 
-        // Initialize Tron HD wallet
-        if (config.tron.hdMnemonic) {
-            this.tronHdNode = ethers.HDNodeWallet.fromPhrase(config.tron.hdMnemonic);
-        } else {
-            throw new Error('Tron HD mnemonic not provided');
-        }
-
         // Initialize TronWeb
-        this.tronWeb = new TronWeb({ fullHost: config.tron.fullHost });
+        this.tronWeb = new TronWeb({ fullHost: config.tron.fullHost, headers: { "TRON-PRO-API-KEY": config.tron.fullHostApiKey } });
+
+        this.getRootNode()
     }
 
     isSupportedCurrency(currency: SupportedCurrencies): boolean {
@@ -298,7 +284,7 @@ class TronPaymentProcessor implements CryptoPaymentProcessor {
 
         // Step 2: Estimate gas fee in TRX
         // Tron uses bandwidth/energy; approximate with fixed fees for simplicity
-        const gasFeeInTrx = currency === SupportedCryptoCurrencies.TRON ? 1 : 10; // 1 TRX for TRX, 10 TRX for TRC20
+        const gasFeeInTrx = 10; // 1 TRX for TRX, 10 TRX for TRC20
 
         const coverted = await this.currencyService.convert(gasFeeInTrx, SupportedCryptoCurrencies.TRON, currency)
 
@@ -310,36 +296,51 @@ class TronPaymentProcessor implements CryptoPaymentProcessor {
         payment: Payment
     ) {
         try {
-            if (!this.tronHdNode) throw new Error('Tron HD wallet not initialized');
             if (!this.isSupportedCurrency(payment.currency)) {
                 throw new Error(`Currency: ${payment.currency} is not supported on the tron network`)
             }
 
+            if (!this.rootNode) {
+                await this.getRootNode()
+            };
+
             // Determine the next derivation index
             const index = await this.getLastIndex()
+            const path = this.getPath(index)
 
-            const path = `${index}`;
-            const childNode = this.tronHdNode.derivePath(path);
-            const privateKey = childNode.privateKey.slice(2); // Remove '0x'
-            const walletAddress = TronWeb.address.fromPrivateKey(privateKey);
+            const childNode = await this.generateChildNode(path);
 
-            if (!walletAddress) {
-                throw new Error('Unable to generate wallet address from private key.')
-            }
+            const { walletAddress } = this.getWallet(childNode);
+            const { privateKey: rootKey, walletAddress: rootWalletAddress } = this.getWallet(this.rootNode!)
 
             // Estimate gas fee in TRX
             const gasFee = await this.estimateGasFee(SupportedCryptoCurrencies.TRON)
             // Convert the fee to SUN (tron least currency)
             const feeInSun = gasFee * 1000000
 
+            // this.tronWeb.setPrivateKey(rootKey)
 
+            // Pre-fund generated wallet with the gas fee in TRX
+            // const transaction = await this.tronWeb.transactionBuilder.sendTrx(walletAddress, feeInSun, rootWalletAddress)
 
-            // Pre-fund the wallet with the gas fee in TRX
-            await this.tronWeb.trx.sendTransaction(
+            // const signedTransaction = await this.tronWeb.trx.sign(transaction)
+            // const result = await this.tronWeb.trx.sendRawTransaction(signedTransaction)
+
+            // const walletBalance = this.tronWeb.trx.getBalance()
+            const mainBal = await this.tronWeb.trx.getBalance(this.config.tron.mainWalletAddress)
+            const rootBal = await this.tronWeb.trx.getBalance(rootWalletAddress)
+
+            // console.log(walletBalance, 'wallet balance')
+            console.log(mainBal, 'wallet balance main')
+            console.log(rootBal, 'wallet balance root')
+
+            const result = await this.tronWeb.trx.sendTransaction(
                 walletAddress,
                 feeInSun,
-                { privateKey: this.tronHdNode.privateKey }
+                { privateKey: rootKey }
             );
+
+            console.log(result, 'sent transaction')
 
             await this.depositsRepo.save(this.depositsRepo.create({
                 payment,
@@ -350,9 +351,10 @@ class TronPaymentProcessor implements CryptoPaymentProcessor {
                 estimatedGasFee: gasFee.toString(),
                 totalRequested: payment.amount.toString(),
                 expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+                lastChecked: new Date()
             }))
 
-            this.monitorTronAddress(walletAddress, payment.currency as SupportedCryptoCurrencies);
+            this.monitorTronAddress(walletAddress, payment.currency as SupportedCryptoCurrencies, result);
 
             return {
                 address: walletAddress,
@@ -371,8 +373,12 @@ class TronPaymentProcessor implements CryptoPaymentProcessor {
     private async getLastIndex() {
         const lastMapping = await this.depositsRepo.findOne({
             where: { currency: In([SupportedCryptoCurrencies.TRON, SupportedCryptoCurrencies.TRC20]) },
-            order: { derivationPath: -1 }
+            order: { derivationIndex: 'DESC' }
         })
+
+        console.log(lastMapping, 'mapping')
+
+        console.log(lastMapping?.derivationPath.split('/').pop())
 
         const index = lastMapping?.derivationPath
             ? parseInt(lastMapping.derivationPath.split('/').pop() || '0') + 1
@@ -382,8 +388,21 @@ class TronPaymentProcessor implements CryptoPaymentProcessor {
     }
 
     // Monitor a Tron address for deposits
-    private async monitorTronAddress(address: string, currency: SupportedCryptoCurrencies): Promise<void> {
+    private async monitorTronAddress(address: string, currency: SupportedCryptoCurrencies, funded: BroadcastReturn<SignedTransaction<ContractParamter>>): Promise<void> {
+
         if (this.activeSubscriptions.has(address)) return;
+
+        // let trxConfirmed = false;
+        // while (!trxConfirmed) {
+        //     const trxStatus = await this.tronWeb.trx.getUnconfirmedTransactionInfo(funded.txid);
+        //     console.log('Waiting for TRX deposit confirmation...');
+        //     if (trxStatus && trxStatus.receipt?.result === 'SUCCESS') {
+        //         trxConfirmed = true;
+        //         console.log('TRX deposit confirmed!');
+        //     }
+        //     console.log(trxStatus.receipt.result, 'CURRENT TRANSACTION STATUS')
+        //     await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+        // }
 
         const intervalId = setInterval(async () => {
             try {
@@ -394,17 +413,36 @@ class TronPaymentProcessor implements CryptoPaymentProcessor {
                     return;
                 }
 
+                let transferSuccess: string | null = null
+
                 if (currency === SupportedCryptoCurrencies.TRON) {
                     const balance = await this.tronWeb.trx.getBalance(address);
                     if (balance > 0) {
-                        await this.transferTron(mapping);
+                        transferSuccess = await this.transferTron(mapping);
                     }
                 } else {
-                    const contract = await this.tronWeb.contract().at(this.config.tron.usdtContractAddress);
+
+                    const { privateKey } = this.getWallet(this.generateChildNode(mapping.derivationPath))
+
+                    const tWeb = new TronWeb({ fullHost: this.config.tron.fullHost, headers: { "TRON-PRO-API-KEY": this.config.tron.fullHostApiKey }, privateKey })
+
+                    // We also need to ensure that the child node received the trx
+                    const trxBalance = await tWeb.trx.getBalance(address);
+
+                    console.log(trxBalance)
+
+                    const contract = await tWeb.contract().at(this.config.tron.usdtContractAddress);
                     const balance = await contract.balanceOf(address).call();
-                    if (balance > 0) {
-                        await this.transferTRC20Token(mapping);
+                    // Transfer token only when both balances are more than zero
+                    if (balance > 0 && trxBalance > 0) {
+                        transferSuccess = await this.transferTRC20Token(mapping);
                     }
+                }
+
+                // If transfer was successful, stop monitoring
+                if (transferSuccess) {
+                    clearInterval(intervalId);
+                    this.activeSubscriptions.delete(address);
                 }
             } catch (error) {
                 console.error(`Error monitoring Tron address ${address}:`, error);
@@ -417,10 +455,11 @@ class TronPaymentProcessor implements CryptoPaymentProcessor {
     // Transfer TRX to the main wallet
     private async transferTron(mapping: AddressMapping): Promise<string | null> {
         try {
-            const childNode = this.tronHdNode.derivePath(mapping.derivationPath || '0');
-            const privateKey = childNode.privateKey.slice(2);
+            const childNode = await this.generateChildNode(mapping.derivationPath);
+            const { privateKey } = this.getWallet(childNode);
 
             const balance = await this.tronWeb.trx.getBalance(mapping.walletAddress);
+
             const amountToSend = balance - 100000; // Reserve 0.1 TRX for gas (100,000 sun)
 
             if (amountToSend <= 0) return null;
@@ -450,22 +489,31 @@ class TronPaymentProcessor implements CryptoPaymentProcessor {
     // Transfer TRC20 tokens to the main wallet
     private async transferTRC20Token(mapping: AddressMapping): Promise<string | null> {
         try {
-            const childNode = this.tronHdNode.derivePath(mapping.derivationPath || '0');
-            const privateKey = childNode.privateKey.slice(2);
+            if (!this.rootNode) {
+                await this.getRootNode()
+            }
 
-            const contract = await this.tronWeb.contract().at(this.config.tron.usdtContractAddress);
+            const { privateKey } = this.getWallet(await this.generateChildNode(mapping.derivationPath))
+
+            const tWeb = new TronWeb({ fullHost: this.config.tron.fullHost, headers: { "TRON-PRO-API-KEY": this.config.tron.fullHostApiKey }, privateKey })
+
+
+            const contract = await tWeb.contract().at(this.config.tron.usdtContractAddress);
             const balance = await contract.balanceOf(mapping.walletAddress).call();
+
+            console.log(balance, 'account balance')
 
             if (balance <= 0) return null;
 
+            console.log('account balance greater')
+            const balanceInSun = balance.toString();
+
+            console.log(balanceInSun, 'Converted Balance', typeof balanceInSun);
+
             const tx = await contract.transfer(
                 this.config.tron.mainWalletAddress,
-                balance
-            ).send({
-                from: mapping.walletAddress,
-                feeLimit: 10000000, // 10 TRX
-                callValue: 0
-            }, privateKey);
+                Number(balance)
+            ).send();
 
             mapping.deposits.push({
                 txHash: tx,
@@ -476,11 +524,69 @@ class TronPaymentProcessor implements CryptoPaymentProcessor {
             });
             await this.depositsRepo.save(mapping);
 
+            // Reset private key and address to root
+            // this.tronWeb.setAddress(rootWalletAddress)
+            // this.tronWeb.setPrivateKey(rootPrivateKey)
+
             return tx;
         } catch (error) {
             console.error('Error transferring USDT-TRC20:', error);
             return null;
         }
+    }
+
+    private getRootNode() {
+        if (this.rootNode) {
+            return this.rootNode
+        }
+
+        // const mnemonic = this.config.tron.hdMnemonic
+        // if (!mnemonic || !bip39.validateMnemonic(mnemonic)) {
+        //     throw new Error('Invalid mnemonic phrase')
+        // }
+
+        // Generate seed from mnemonic
+        // const seed = await bip39.mnemonicToSeed(mnemonic);
+
+        // Create master key using BIP32
+        this.rootNode = bip32.fromPrivateKey(Buffer.from(this.config.tron.privateKey, 'hex'), Buffer.alloc(32));
+
+        console.log(this.getWallet(this.rootNode))
+
+
+
+        return this.rootNode
+    }
+
+    private getPath(index: number = 0) {
+        return `${this.config.tron.basePath || "m/44'/195'/0'/0"}/${index}`;
+    }
+
+    private generateChildNode(path: string) {
+        if (!this.rootNode) {
+            this.getRootNode()
+        }
+        // Derive the key for TRON (BIP44 path: m/44'/195'/0'/0/index)
+        const child = this.rootNode!.derivePath(path);
+
+        return child
+    }
+
+    private getWallet(node: BIP32Interface) {
+        // Convert to private key format
+
+        if (!node.privateKey) {
+            throw new Error('Failed to get private key from node')
+        }
+        const privateKey = Buffer.from(node.privateKey).toString("hex");
+        // Get Tron Address
+        const walletAddress = TronWeb.address.fromPrivateKey(privateKey);
+
+        if (!walletAddress) {
+            throw new Error('Unable to generate wallet address')
+        }
+
+        return { walletAddress, privateKey };
     }
 }
 
@@ -545,7 +651,7 @@ export class CryptoPaymentFactory {
         return processor;
     }
 
-    constructor(config: IConfig, depositsRepo: Repository<AddressMapping>, currencyService:CurrencyService) {
+    constructor(config: IConfig, depositsRepo: Repository<AddressMapping>, currencyService: CurrencyService) {
         this.setProcessor('ethereum', new EthereumPaymentProcessor(config, depositsRepo, currencyService));
         this.setProcessor('tron', new TronPaymentProcessor(config, depositsRepo, currencyService));
         currencyNetworkmap.map(itm => {

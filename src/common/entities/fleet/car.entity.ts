@@ -28,6 +28,7 @@ import {
   CarStatus,
   FuelType,
   MediaType,
+  SupportedCurrencies,
   TransmissionType,
 } from '@/common/enums';
 import { TranslationEntity } from '../translation-base';
@@ -58,6 +59,9 @@ export class Car extends Base {
   })
   fuelType!: FuelType;
 
+  @Column('int')
+  fuelTankSize!: number;
+
   @Column({
     type: 'enum',
     enum: TransmissionType,
@@ -80,6 +84,13 @@ export class Car extends Base {
     range?: number;
     acceleration: number;
     topSpeed: number;
+    size: number;
+  };
+
+  @Column('jsonb')
+  securityDeposit!: {
+    currency: SupportedCurrencies;
+    amount: number;
   };
 
   @Column('jsonb')

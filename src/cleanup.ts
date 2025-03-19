@@ -4,7 +4,8 @@ import { gracefulShutdownMessageBroker } from './common/message-broker';
 import logger from './common/utils/logger';
 
 // Cleanup on shutdown
-export async function cleanup() {
+export async function cleanup(code: number) {
+  console.log(code)
   logger.info('Shutting down gracefully...');
   // Disconnect from databases
   closeConnection();

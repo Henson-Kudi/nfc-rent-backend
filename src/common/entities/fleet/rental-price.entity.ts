@@ -1,7 +1,7 @@
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { Base } from '../base';
 import { Car } from '..';
-import { CarPricingUnit, SupportedCurrencies } from '@/common/enums';
+import { CarPricingUnit, SupportedCryptoCurrencies, SupportedCurrencies, SupportedFiatCurrencies } from '@/common/enums';
 
 @Entity()
 export class RentalPricing extends Base {
@@ -17,6 +17,9 @@ export class RentalPricing extends Base {
   @Column()
   price!: number;
 
-  @Column({ enum: SupportedCurrencies })
-  currency!: SupportedCurrencies; // e.g., "USD", "EUR", "USDT" (also want to handle crypto payments. we could make this better)
+  @Column()
+  mileageLimit!: number; // mileage limit in KM
+
+  @Column({ enum: [...Object.values(SupportedCryptoCurrencies), ...Object.values(SupportedFiatCurrencies)] })
+  currency!: SupportedCurrencies;
 }

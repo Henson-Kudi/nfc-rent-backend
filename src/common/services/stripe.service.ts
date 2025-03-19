@@ -10,6 +10,8 @@ export class StripeService {
         apiVersion: '2025-02-24.acacia'
     })
 
+    private readonly webhookSecret = envConf.STRIPE_WEBHOOK_SECRET
+
     creatPaymentIntent(payload: {
         bookingId: string;
         amount: number;
@@ -26,6 +28,10 @@ export class StripeService {
         })
     }
 
+    getPaymentIntent(id: string) {
+        return this.stripe.paymentIntents.retrieve(id)
+    }
+
     createCheckoutSession(payload: {
         bookingId?: string
         successUrl?: string
@@ -40,18 +46,26 @@ export class StripeService {
             payment_method_types: isManualCapture ? ['card'] : ['card', 'link', 'samsung_pay'],
             mode: 'payment',
             line_items: this.createLineItems(payload.lineItems, payload.currency),
-            success_url: payload.successUrl && `${payload.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+            success_url: `${payload.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: payload.cancelUrl,
             customer_email: payload.clientEmail,
             metadata: {
                 bookingId: payload?.bookingId || '',
                 userId: payload?.clientId || ''
+            },
+            payment_intent_data: {
+                metadata: {
+                    bookingId: payload?.bookingId || '',
+                    userId: payload?.clientId || ''
+                },
             }
         }
 
         if (isManualCapture) {
             sessionConf.payment_intent_data = {
+                ...(sessionConf.payment_intent_data || {}),
                 capture_method: 'manual',
+
             };
         }
 
@@ -90,6 +104,28 @@ export class StripeService {
         return this.stripe.refunds.create({
             payment_intent: paymentIntentId,
         });
+    }
+
+    async cancelPayment(paymentIntentId: string) {
+        // Retrieve checkout session by payment intent id
+        const sessions = await this.stripe.checkout.sessions.list({
+            payment_intent: paymentIntentId
+        })
+
+        if (!sessions.data.length) {
+            throw new AppError({
+                message: "Session with payment not found",
+                statusCode: ResponseCodes.BadRequest
+            })
+        }
+
+        const sessionId = sessions.data[0]?.id
+
+        return await this.stripe.checkout.sessions.expire(sessionId)
+    }
+
+    constructWebhookEvent(body: string, sig: string) {
+        return this.stripe.webhooks.constructEvent(body, sig as string, this.webhookSecret);
     }
 
 

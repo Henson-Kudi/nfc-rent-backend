@@ -121,7 +121,7 @@ function getBookingsRepository(dataSource: DataSource) {
 
         getBooking(id: string, options?: GetBookingOptions) {
             return this.getBaseQuery(options)
-                .where('brand.id = :id', { id })
+                .where('booking.id = :id', { id })
                 .getOne();
         },
 

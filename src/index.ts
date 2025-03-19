@@ -13,15 +13,22 @@ import { initializeDI } from './loaders/di';
 import { seedModules } from './seeders/resources.seeder';
 import { seedDefaultRoles } from './seeders/role.seeder';
 import { HttpService } from './common/services/http.service';
+import Container from 'typedi';
+import { AddressMappingRepository } from './modules/booking/application/repository/booking.repository';
 
 // Run application
 (async () => {
   // await runMigrations()
 
+
   // Connect to datasource before starting the server
   const datsSource = await initializeDb();
 
   initializeDI(datsSource);
+
+  // const repo = Container.get(AddressMappingRepository)
+
+  // const all = await (await repo.find()).map(async itm => await repo.update(itm.id, { derivationIndex: parseInt(itm.derivationPath.split('/').pop() || '0') }))
 
   // const roleRepo = Container.get(UserRepository)
 

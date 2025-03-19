@@ -1,6 +1,6 @@
 import Joi from "joi";
 import { localeValidator } from ".";
-import { CarCategory, CarCondition, CarDocumentType, CarInspectionStatus, CarListingType, CarStatus, FuelType, MediaType, TransmissionType } from "@/common/enums";
+import { CarCategory, CarCondition, CarDocumentType, CarInspectionStatus, CarListingType, CarStatus, FuelType, MediaType, SupportedCryptoCurrencies, SupportedFiatCurrencies, TransmissionType } from "@/common/enums";
 
 const carColorValidation = Joi.object<CarColor>({
     code: Joi.string().optional().allow(null).allow(''),
@@ -38,7 +38,8 @@ const carEngineSpecsValidator = Joi.object<CarEngineSpecs>({
     range: Joi.number().positive().precision(2).optional().allow(null),
     topSpeed: Joi.number().positive().precision(2).required(),
     torque: Joi.number().positive().precision(2).required(),
-    type: Joi.string().required()
+    type: Joi.string().required(),
+    size: Joi.number().integer().min(0).required()
 })
 
 const carDocumentValidator = Joi.object<CarDocument>({
@@ -74,7 +75,8 @@ const carPriceValidator = Joi.object<RentalPricing>({
     currency: Joi.string().required(),
     duration: Joi.number().positive().min(1).precision(0).required(),
     price: Joi.number().positive().required(),
-    unit: Joi.string().valid("year", "hour", "day", "week", "month")
+    unit: Joi.string().valid("year", "hour", "day", "week", "month"),
+    mileageLimit: Joi.number().min(0).required() // mileage limit cannot be negative
 })
 
 export const CreateCarSchema = Joi.object<CreateCarDTO>({
@@ -105,5 +107,9 @@ export const CreateCarSchema = Joi.object<CreateCarDTO>({
     }),
     transmission: Joi.string().valid(TransmissionType.AUTOMATIC, ...Object.values(TransmissionType)).required(),
     vin: Joi.string().required(),
-    year: Joi.number().positive().precision(0).required()
+    year: Joi.number().positive().precision(0).required(),
+    securityDeposit: Joi.object({
+        currency: Joi.string().valid(SupportedCryptoCurrencies.ERC20, ...Object.values(SupportedCryptoCurrencies), ...Object.values(SupportedFiatCurrencies)),
+        amount: Joi.number().min(0)
+    }).required()
 }).unknown()

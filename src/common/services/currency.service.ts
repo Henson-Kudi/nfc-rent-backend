@@ -5,6 +5,10 @@ import { Inject, Service } from "typedi";
 
 type IExchangeRates = { base: 'USD', date: string, rates: Record<string, number> }
 
+const dummyFiatRates = {
+
+}
+
 @Service()
 export class CurrencyService {
     constructor(
@@ -20,13 +24,14 @@ export class CurrencyService {
     async convert(amount: number, from: SupportedCurrencies, to: SupportedCurrencies): Promise<number> {
         if (from === to) return amount;
 
-        const fromExchangeRate = this.getRate(from)
-        const toExchangeRate = this.getRate(from)
-
         // Refresh rates every hour
-        if ((Date.now() - this.lastUpdated > 3600000)) {
+        if ((Date.now() - this.lastUpdated > 3600000) || !this.rates?.rates) {
             await this.loadRates();
         }
+
+        const fromExchangeRate = this.getRate(from)
+        const toExchangeRate = this.getRate(to)
+
 
         if (!fromExchangeRate || !toExchangeRate) {
             throw new Error('Unsupported currency conversion');
@@ -41,33 +46,53 @@ export class CurrencyService {
 
     private async loadRates() {
 
-        const fiat = await this.httpService.get<{ base: 'USD', date: string, rates: Record<string, number> }>('https://api.apilayer.com/exchangerates_data/latest?base=USD', {
-            headers: {
-                apikey: envConf.EXCHANGE_RATES_DATA_API
-            }
-        })
+        try {
+            if (envConf.NODE_ENV !== 'production') {
+                this.rates = {
+                    base: 'USD',
+                    date: new Date().toString(),
+                    rates: {
+                        AED: 3.67,
+                        EUR: 0.92,
+                        ETH: 1 / 1847.04, // equivalent of 1 usd in eth (ethereum)
+                        TRC20: 0.0001, // should be same as 1
+                        ERC20: 1, // should be same a 1
+                        TRX: 4.44272, // equivalent of 1 usd to trx (tron)
+                        USD: 1
+                    }
+                };
+            } else {
+                const fiat = await this.httpService.get<{ base: 'USD', date: string, rates: Record<string, number> }>('https://api.apilayer.com/exchangerates_data/latest?base=USD', {
+                    headers: {
+                        apikey: envConf.EXCHANGE_RATES_DATA_API
+                    }
+                })
 
-        type CryptoRate = {
-            usd: number
+                type CryptoRate = {
+                    usd: number
+                }
+
+                // For crypto currencies (using CoinGecko)
+                const crypto = await this.httpService.get<Record<'ethereum' | 'tron' | 'tether', CryptoRate>>(
+                    'https://api.coingecko.com/api/v3/simple/price?ids=tron,tether,ethereum&vs_currencies=usd'
+                );
+
+                this.rates = {
+                    ...fiat,
+                    rates: {
+                        ...fiat.rates,
+                        ETH: 1 / crypto.ethereum.usd, // equivalent of 1 usd in eth (ethereum)
+                        TRC20: 1 / crypto.tether.usd, // should be same as 1
+                        ERC20: 1 / crypto.tether.usd, // should be same a 1
+                        TRX: 1 / crypto.tron.usd, // equivalent of 1 usd to trx (tron)
+                        USD: 1
+                    }
+                };
+            }
+
+            this.lastUpdated = Date.now();
+        } catch (err) {
+            console.log(err, 'failed to fetch')
         }
-
-        // For crypto currencies (using CoinGecko)
-        const crypto = await this.httpService.get<Record<'ethereum' | 'tron' | 'tether', CryptoRate>>(
-            'https://api.coingecko.com/api/v3/simple/price?ids=tron,tether,ethereum&vs_currencies=usd'
-        );
-
-        this.rates = {
-            ...fiat,
-            rates: {
-                ...fiat.rates,
-                ETH: 1 / crypto.ethereum.usd, // equivalent of 1 usd in eth (ethereum)
-                TRC20: 1 / crypto.tether.usd, // should be same as 1
-                ERC20: 1 / crypto.tether.usd, // should be same a 1
-                TRX: 1 / crypto.tron.usd, // equivalent of 1 usd to trx (tron)
-                USD: 1
-            }
-        };
-
-        this.lastUpdated = Date.now();
     }
 }

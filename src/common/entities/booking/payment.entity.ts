@@ -16,7 +16,7 @@ export class Payment extends Base {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     amount!: number;
 
-    @Column({ enum: [...Object.values(SupportedCryptoCurrencies), ...Object.values(SupportedFiatCurrencies)], type: 'enum' })
+    @Column({ enum: [...Object.values(SupportedCryptoCurrencies), ...Object.values(SupportedFiatCurrencies), ], type: 'enum' })
     currency!: SupportedCurrencies;
 
     @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })

@@ -5,10 +5,11 @@ export enum SupportedFiatCurrencies {
 }
 
 export enum SupportedCryptoCurrencies {
-  TRON = 'TRX',
+  // TRON = 'TRX',
   TRC20 = 'TRC20',
   ETH = 'ETH',
   ERC20 = 'ERC20',
+  USDT = 'USDT'
 }
 
 
@@ -239,4 +240,18 @@ export enum DriverType {
   GCC = 'GCC',
   TOURIST = 'TOURIST',
   RESIDENT = 'RESIDENT'
+}
+
+export enum ContractViolationType {
+  TRAFFIC_FINE = "TRAFFIC FINE",
+  LATE_RETURN = "LATE RETURN",
+  SMOKING = "SMOKING",
+  DIRTY_RETURN = "DIRTY RETURN",
+  DESERT_DRIVING = "DESERT DRIVING",
+  DAMAGE = "DAMAGE",
+  FUEL_SHORTAGE = "FUEL SHORTAGE",
+  SALIK_TOLL = "SALIK TOLL",
+  BORDER_CROSSING = "BORDER CROSSING",
+  MILEAGE_EXCEEDED = "MILEAGE EXCEEDED",
+  OTHER = "OTHER",
 }

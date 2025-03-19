@@ -13,8 +13,6 @@ export class SessionDto extends BaseDto {
     @Expose()
     expiresAt!: Date;
     @Expose()
-    isActive!: boolean;
-    @Expose()
     loggedOutAt?: Date;
     @Expose()
     lastActiveAt!: Date;

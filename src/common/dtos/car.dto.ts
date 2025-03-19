@@ -1,5 +1,5 @@
 import { BaseDto } from './base.dto';
-import { CarCategory, CarCondition, CarInspectionStatus, CarListingType, CarStatus, FuelType, MediaType, TransmissionType } from '@/common/enums';
+import { CarCategory, CarCondition, CarInspectionStatus, CarListingType, CarStatus, FuelType, MediaType, SupportedCurrencies, TransmissionType } from '@/common/enums';
 import { CarBrandDto, CarModelDto, CarFeatureDto, CarMediaDto, RentalPricingDto, CarDocumentDto, CarOwnershipDetailDto, CarHistoryRecordDto } from '.';
 import { Expose, Transform, Type } from 'class-transformer';
 import { getBestTranslation } from "@/common/utils/getBestTranslation";
@@ -16,6 +16,7 @@ import { CreateCarSchema } from '@/modules/cars/utils/validations/cars.validatio
 
 export class CarDto extends BaseDto {
     @Expose() slug!: string;
+    @Expose() securityDeposit!: { currency: SupportedCurrencies, amount: number };
     @Expose() vin!: string;
     @Expose() blockchainId?: string;
     @Expose() year!: number;
@@ -26,13 +27,13 @@ export class CarDto extends BaseDto {
     @LocalizedEnum(carFuelTypeTranslations)
     fuelType!: FuelType;
     @Expose()
+    fuelTankSize!: number;
+    @Expose()
     @LocalizedEnum(carTransmissionTypeTranslations)
     transmission!: TransmissionType;
     @Expose() doors!: number;
     @Expose() seats!: number;
 
-    // Instead of separate relations, we assume the Car entity has a media array.
-    // We define getters using @Transform to filter media by type.
     @Expose()
     @Type(() => CarMediaDto)
     images!: CarMediaDto[];
@@ -102,6 +103,7 @@ export class CarDto extends BaseDto {
         range?: number;
         acceleration: number;
         topSpeed: number;
+        size: number
     };
 
     @Expose()
@@ -187,7 +189,7 @@ export class CreateCarDto implements CreateCarDTO {
     inspectionStatus!: string;
     lastInspectionDate?: DateInputType | undefined;
     nextInspectionDueDate?: DateInputType | undefined;
-    engineSpecs!: { type: string; horsepower: number; torque: number; displacement?: number; batteryCapacity?: number; range?: number; acceleration: number; topSpeed: number; };
+    engineSpecs!: CarEngineSpecs;
     dimensions!: { length: number; width: number; height: number; weight: number; cargoCapacity: number; };
     media!: globalThis.CarMedia[];
     model!: string;
@@ -196,6 +198,7 @@ export class CreateCarDto implements CreateCarDTO {
     documents?: globalThis.CarDocument[] | undefined;
     owner?: { ownerId: string; ownerType: 'User' | 'Company'; percentage: number; nftId?: string; acquiredDate: DateInputType; transferDate?: DateInputType; status: 'Active' | 'Pending' | 'Transferred'; } | undefined;
     translations!: NonEmptyArray<CarTranslationDTO>;
+    securityDeposit!: { currency: SupportedCurrencies, amount: number }
 
     validate() {
         return CreateCarSchema.validateAsync(this, {
@@ -226,7 +229,7 @@ export class UpdateCarDto implements UpdateCarDTO {
     inspectionStatus?: string;
     lastInspectionDate?: DateInputType | undefined;
     nextInspectionDueDate?: DateInputType | undefined;
-    engineSpecs?: { type: string; horsepower: number; torque: number; displacement?: number; batteryCapacity?: number; range?: number; acceleration: number; topSpeed: number; };
+    engineSpecs?: CarEngineSpecs;
     dimensions?: { length: number; width: number; height: number; weight: number; cargoCapacity: number; };
     media?: globalThis.CarMedia[];
     model?: string;

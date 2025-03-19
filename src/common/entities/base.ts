@@ -20,13 +20,13 @@ export abstract class Base {
   isDeleted!: boolean;
 
   @CreateDateColumn({ type: Date })
-  createdAt?: string;
+  createdAt?: Date;
 
   @UpdateDateColumn({ type: Date })
-  updatedAt?: string;
+  updatedAt?: Date;
 
   @DeleteDateColumn({ type: Date })
-  deletedAt?: string;
+  deletedAt?: Date;
 
   @BeforeInsert()
   addId() {

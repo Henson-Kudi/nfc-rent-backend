@@ -3,7 +3,7 @@ import { LessThanOrEqual, MoreThanOrEqual, Not } from "typeorm";
 import { PaymentService } from "./payment.service";
 import { AppError, IReturnValue, IReturnValueWithPagination } from "@/common/utils";
 import { BookingStatus, PaymentStatus, ResponseCodes, SupportedCurrencies } from "@/common/enums";
-import { CarRepository } from "@/modules/cars/infrastrucure/car.repository";
+import { CarRepository, CarsRepositoryToken } from "@/modules/cars/infrastrucure/car.repository";
 import { SerializerService } from "@/common/services/serializer.service";
 import { BookingDto, PaymentDto } from "@/common/dtos";
 import { CreateBookingDto } from "@/common/dtos/booking.dto";
@@ -12,16 +12,19 @@ import { Driver, User } from "@/common/entities";
 import { UserRepository } from "@/modules/auth/infrastructure/repositories/user.repository";
 import { DriverRepository } from "@/modules/auth/infrastructure/repositories/driver.repository";
 import { MessageBrokerToken } from "@/common/message-broker";
-import { bookingCreated, bookingConfirmed, bookingCancelled } from '../../utils/messages.json'
+import { BookingEvents } from "@/common/message-broker/events/booking.event";
 import logger from "@/common/utils/logger";
 import { BookingRepository, BookingsRepositoryToken } from "../../infrastructure/booking.repository";
+import { TokenManagerToken } from "@/common/jwt";
+import { JwtPayload } from "jsonwebtoken";
+import { PricingService } from "./pricing.service";
 
 @Service()
 export class BookingService {
     constructor(
         @Inject(BookingsRepositoryToken)
         private bookingRepository: BookingRepository,
-        @Inject()
+        @Inject(CarsRepositoryToken)
         private carRepository: CarRepository,
         @Inject()
         private userRepository: UserRepository,
@@ -32,12 +35,17 @@ export class BookingService {
         @Inject()
         private readonly serializer: SerializerService,
         @Inject(MessageBrokerToken)
-        private readonly messageBroker: IMessageBroker
+        private readonly messageBroker: IMessageBroker,
+        @Inject()
+        private readonly pricingService: PricingService
     ) { }
 
     async createBooking(dto: CreateBookingDto, actor: User) {
 
         const valid = await validateBookingSchema(dto)
+
+        // Ensure pricing data is valid
+        const decodedPrice = this.pricingService.verifyPrice(valid.pricing)
 
         // Esure car exists
         const car = await this.carRepository.getCar(valid.carId, {
@@ -93,23 +101,20 @@ export class BookingService {
             driver,
             pickupDate: valid.pickupDate,
             returnDate: valid.returnDate,
-            totalAmount: valid.pricing.total,
+            totalAmount: decodedPrice.total,
+            securityDeposit: decodedPrice?.breakdown.securityDeposit,
             // selectedAddons: valid.selectedAddons,
-            priceBreakdown: valid.pricing.breakdown,
+            priceBreakdown: decodedPrice.breakdown,
         }));
 
         // Process payment
-        const paymentResult = await this.paymentService.createPayment({
-            ...valid.paymentData,
-            bookingId: booking.id,
-            amount: valid.pricing.total,
-        }, booking); // this should return payment data and a payment intent
+        const paymentResult = await this.paymentService.createPayment(booking, decodedPrice.currency); // this should return payment data and a payment intent
 
         // Emit event of booking created
         try {
-            this.messageBroker.publishMessage(bookingCreated, { data: { actor, booking } })
+            this.messageBroker.publishMessage(BookingEvents.bookingCreated, { data: { actor, booking } })
         } catch (error) {
-            logger.error(`Failed to publish event: ${bookingCreated}`, error)
+            logger.error(`Failed to publish event: ${BookingEvents.bookingCreated}`, error)
         }
 
         return new IReturnValue({
@@ -124,16 +129,17 @@ export class BookingService {
     }
 
     async isCarAvailable(carId: string, startDate: Date, endDate: Date): Promise<boolean> {
-        const conflictingBookings = await this.bookingRepository.count({
-            where: {
-                car: { id: carId },
-                status: Not(BookingStatus.CANCELLED),
-                pickupDate: LessThanOrEqual(endDate),
-                returnDate: MoreThanOrEqual(startDate),
-            }
-        });
+        // const conflictingBookings = await this.bookingRepository.count({
+        //     where: {
+        //         car: { id: carId },
+        //         status: Not(BookingStatus.CANCELLED),
+        //         pickupDate: LessThanOrEqual(endDate),
+        //         returnDate: MoreThanOrEqual(startDate),
+        //     }
+        // });
 
-        return conflictingBookings === 0;
+        // return conflictingBookings === 0;
+        return true
     }
 
     async cancelBooking(payload: { bookingId: string, reason?: string, locale?: SupportedLocales, actor: User }) {
@@ -162,12 +168,14 @@ export class BookingService {
         // Initiate refund if payment was made
         if (booking.payment?.status === PaymentStatus.PAID) {
             await this.paymentService.processRefund(booking.payment.transactionId!);
+        } else if (booking.payment?.status === PaymentStatus.PENDING_CAPTURE) {
+            await this.paymentService.cancelPayment(booking.payment.transactionId!)
         }
 
         try {
-            this.messageBroker.publishMessage(bookingCancelled, { data: { actor, booking } })
+            this.messageBroker.publishMessage(BookingEvents.bookingCancelled, { data: { actor, booking } })
         } catch (error) {
-            logger.error(`Failed to publish ${bookingCancelled} event`, error)
+            logger.error(`Failed to publish ${BookingEvents.bookingCancelled} event`, error)
         }
 
         return new IReturnValue({
@@ -233,9 +241,9 @@ export class BookingService {
 
         // Publish booking confirmed event
         try {
-            this.messageBroker.publishMessage(bookingConfirmed, { data: { actor, booking: updated } })
+            this.messageBroker.publishMessage(BookingEvents.bookingConfirmed, { data: { actor, booking: updated } })
         } catch (error) {
-            logger.info(`Failed to publish ${bookingConfirmed} event.`, error)
+            logger.info(`Failed to publish ${BookingEvents.bookingConfirmed} event.`, error)
         }
 
         return new IReturnValue({

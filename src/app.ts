@@ -20,7 +20,14 @@ const corsOptions: CorsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
-app.use(express.json());
+
+app.use((req, res, next) => {
+  if (req.path.includes('/webhook')) {
+    app.use(express.raw())(req, res, next)
+  } else {
+    app.use(express.json())(req, res, next);
+  }
+})
 app.use(express.urlencoded({ extended: true }));
 // Cookie parser
 app.use(cookierParser());
