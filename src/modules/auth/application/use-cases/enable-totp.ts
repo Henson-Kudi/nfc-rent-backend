@@ -44,7 +44,7 @@ class EnableTOTP
     user.totpStatus = TOTPStatus.REQUIRES_VERIFICATION;
 
     // update user
-    await this.repository.update({ id: user.id }, user);
+    await this.repository.save(user);
 
     return new IReturnValue({
       success: true,

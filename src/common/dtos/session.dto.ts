@@ -1,19 +1,19 @@
-import { BaseDto } from "./base.dto";
-import { Expose } from "class-transformer";
+import { BaseDto } from './base.dto';
+import { Expose } from 'class-transformer';
 
 export class SessionDto extends BaseDto {
-    @Expose()
-    userId!: string;
-    @Expose()
-    refreshToken!: string;
-    @Expose()
-    device!: string;
-    @Expose()
-    location!: string;
-    @Expose()
-    expiresAt!: Date;
-    @Expose()
-    loggedOutAt?: Date;
-    @Expose()
-    lastActiveAt!: Date;
+  @Expose()
+  userId!: string;
+  @Expose()
+  refreshToken!: string;
+  @Expose()
+  device!: string;
+  @Expose()
+  location!: string;
+  @Expose()
+  expiresAt!: Date;
+  @Expose()
+  loggedOutAt?: Date;
+  @Expose()
+  lastActiveAt!: Date;
 }

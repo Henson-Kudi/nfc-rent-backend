@@ -5,7 +5,7 @@ import { CarHistoryRecordType } from '@/common/enums';
 
 @Entity('car_history_records')
 export class CarHistoryRecord extends Base {
-  @ManyToOne(() => Car, (car) => car.history, {onDelete: 'CASCADE'})
+  @ManyToOne(() => Car, (car) => car.history, { onDelete: 'CASCADE' })
   car!: Car;
 
   @Column({

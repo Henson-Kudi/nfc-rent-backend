@@ -5,7 +5,8 @@ import { Request } from 'express';
 import Container from 'typedi';
 
 export class GetFeaturesController
-  implements IController<Promise<IReturnValueWithPagination<CarFeatureDto>>> {
+  implements IController<Promise<IReturnValueWithPagination<CarFeatureDto>>>
+{
   handle(request: Request): Promise<IReturnValueWithPagination<CarFeatureDto>> {
     const featuresService = Container.get(CarFeatureService);
     return featuresService.listFeatures(request.query);

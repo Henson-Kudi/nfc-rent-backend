@@ -25,8 +25,8 @@ type FeatureFilter = {
   id?: string[];
   slug?: string[];
   search?: string;
-  category?: FeatureCategory[],
-  isHighlighted?: 'true' | 'false'
+  category?: FeatureCategory[];
+  isHighlighted?: 'true' | 'false';
 };
 
 export interface CarFeatureRepository extends Repository<CarFeature> {
@@ -37,7 +37,10 @@ export interface CarFeatureRepository extends Repository<CarFeature> {
 
   getFeature(id: string, locale?: SupportedLocales): Promise<CarFeature>;
 
-  getFeatureBySlug(slug: string, locale?: SupportedLocales): Promise<CarFeature>;
+  getFeatureBySlug(
+    slug: string,
+    locale?: SupportedLocales
+  ): Promise<CarFeature>;
 }
 
 export const FeaturesRepositoryToken = new Token<CarFeatureRepository>();
@@ -74,10 +77,16 @@ function getFeaturesRepository(dataSource: DataSource) {
       if (category && category.length > 0)
         query.andWhere(`feature.category in (:...category)`, { category });
 
-      if (isHighlighted && (isHighlighted === 'false' || isHighlighted === 'true'))
-        query.andWhere(`feature.isHighlighted = :highlighted`, { highlighted: isHighlighted });
+      if (
+        isHighlighted &&
+        (isHighlighted === 'false' || isHighlighted === 'true')
+      )
+        query.andWhere(`feature.isHighlighted = :highlighted`, {
+          highlighted: isHighlighted,
+        });
 
-      if (id && id?.length > 0) query.andWhere(`feature.id in (:...id)`, { id });
+      if (id && id?.length > 0)
+        query.andWhere(`feature.id in (:...id)`, { id });
 
       if (search && search?.length > 0) {
         query.andWhere(

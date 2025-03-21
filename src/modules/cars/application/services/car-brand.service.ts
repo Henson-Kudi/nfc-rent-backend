@@ -1,13 +1,13 @@
 import { Inject, Service } from 'typedi';
 import {
-    BrandsRepositoryToken,
-    type CarBrandRepository,
+  BrandsRepositoryToken,
+  type CarBrandRepository,
 } from '../../infrastrucure/brand.repository';
 import { SerializerService } from '@/common/services/serializer.service';
 import {
-    AppError,
-    IReturnValue,
-    IReturnValueWithPagination,
+  AppError,
+  IReturnValue,
+  IReturnValueWithPagination,
 } from '@/common/utils';
 import { ResponseCodes } from '@/common/enums';
 import { CreateBrandUseCase } from '../use-cases/brands/create';
@@ -22,133 +22,150 @@ import { CarBrandDto } from '@/common/dtos';
 // services/car-brand.service.ts
 @Service()
 export class CarBrandService {
-    constructor(
-        @Inject(BrandsRepositoryToken)
-        private brandRepository: CarBrandRepository,
+  constructor(
+    @Inject(BrandsRepositoryToken)
+    private brandRepository: CarBrandRepository,
 
-        @Inject()
-        private translationsRepo: BrandTranslationsRepository,
+    @Inject()
+    private translationsRepo: BrandTranslationsRepository,
 
-        @Inject()
-        private serializer: SerializerService,
+    @Inject()
+    private serializer: SerializerService,
 
-        @Inject(MessageBrokerToken)
-        private messageBroker: IMessageBroker
-    ) { }
+    @Inject(MessageBrokerToken)
+    private messageBroker: IMessageBroker
+  ) {}
 
-    async getBrand(
-        id: string,
-        locale: SupportedLocales
-    ): Promise<IReturnValue<CarBrandDto>> {
-        const brand = await this.brandRepository.getBrand(id, locale);
+  async getBrand(
+    id: string,
+    locale: SupportedLocales
+  ): Promise<IReturnValue<CarBrandDto>> {
+    const brand = await this.brandRepository.getBrand(id, locale);
 
-        if (!brand)
-            throw new AppError({
-                statusCode: ResponseCodes.NotFound,
-                message: 'Brand not found',
-            });
+    if (!brand)
+      throw new AppError({
+        statusCode: ResponseCodes.NotFound,
+        message: 'Brand not found',
+      });
 
-        const serialised = this.serializer.serialize(CarBrandDto, brand, locale);
+    const serialised = this.serializer.serialize(CarBrandDto, brand, locale);
 
-        return new IReturnValue({
-            success: true,
-            message: 'Brand fetched successfully',
-            data: serialised,
-        });
-    }
+    return new IReturnValue({
+      success: true,
+      message: 'Brand fetched successfully',
+      data: serialised,
+    });
+  }
 
-    async getBrandBySlug(
-        slug: string,
-        locale: SupportedLocales
-    ): Promise<IReturnValue<CarBrandDto>> {
-        const brand = await this.brandRepository.getBrandBySlug(slug, locale);
+  async getBrandBySlug(
+    slug: string,
+    locale: SupportedLocales
+  ): Promise<IReturnValue<CarBrandDto>> {
+    const brand = await this.brandRepository.getBrandBySlug(slug, locale);
 
-        if (!brand)
-            throw new AppError({
-                statusCode: ResponseCodes.NotFound,
-                message: 'Brand not found',
-            });
+    if (!brand)
+      throw new AppError({
+        statusCode: ResponseCodes.NotFound,
+        message: 'Brand not found',
+      });
 
-        const serialised = this.serializer.serialize(CarBrandDto, brand, locale);
+    const serialised = this.serializer.serialize(CarBrandDto, brand, locale);
 
-        return new IReturnValue({
-            success: true,
-            message: 'Brand fetched successfully',
-            data: serialised,
-        });
-    }
+    return new IReturnValue({
+      success: true,
+      message: 'Brand fetched successfully',
+      data: serialised,
+    });
+  }
 
-    async validateSlug(name: string) {
-        const found = await this.brandRepository.getBrandBySlug(slugify(name), 'en')
+  async validateSlug(name: string) {
+    const found = await this.brandRepository.getBrandBySlug(
+      slugify(name),
+      'en'
+    );
 
-        return new IReturnValue({
-            success: true,
-            data: { exists: !!found },
-            message: 'Success'
-        })
-    }
+    return new IReturnValue({
+      success: true,
+      data: { exists: !!found },
+      message: 'Success',
+    });
+  }
 
-    async listBrands(
-        params?: GetBrandsFilter
-    ): Promise<IReturnValueWithPagination<CarBrandDto>> {
-        const parsedPage = parseInt(params?.page?.toString() || '1');
-        const parsedLimit = parseInt(params?.limit?.toString() || '10');
-        const {
-            id,
-            search,
-            slug,
-            page: Page,
-            limit: Limit,
-            ...rest
-        } = params || {};
+  async listBrands(
+    params?: GetBrandsFilter
+  ): Promise<IReturnValueWithPagination<CarBrandDto>> {
+    const {
+      id,
+      search,
+      slug,
+      page: Page,
+      limit: Limit,
+      ...rest
+    } = params || {};
 
-        const page =
-            isNaN(parsedPage) || parsedPage < 1 || parsedPage > 100 ? 1 : parsedPage;
-        const limit =
-            isNaN(parsedLimit) || parsedLimit < 0
-                ? 10
-                : parsedLimit >= 100
-                    ? 100
-                    : parsedLimit;
-        const skip = (page - 1) * limit;
+    const parsedPage = parseInt(Page?.toString() || '1');
+    const parsedLimit = parseInt(Limit?.toString() || '10');
 
-        const [brands, count] = await this.brandRepository.getBrands(
-            {
-                id,
-                search,
-                slug,
-            },
-            {
-                skip,
-                limit,
-                ...rest,
-            }
-        );
+    const page =
+      isNaN(parsedPage) || parsedPage < 1 || parsedPage > 100 ? 1 : parsedPage;
+    const limit =
+      isNaN(parsedLimit) || parsedLimit < 0
+        ? 10
+        : parsedLimit >= 100
+          ? 100
+          : parsedLimit;
+    const skip = (page - 1) * limit;
 
-        const serialised = this.serializer.serialize(CarBrandDto,
-            brands,
-            rest?.locale || 'en'
-        );
+    const [brands, count] = await this.brandRepository.getBrands(
+      {
+        id,
+        search,
+        slug,
+      },
+      {
+        skip,
+        limit,
+        ...rest,
+      }
+    );
 
-        return new IReturnValueWithPagination({
-            success: true,
-            data: serialised as unknown as CarBrandDto[],
-            limit,
-            page,
-            total: count,
-            message: 'Brands fetched successfully',
-        });
-    }
+    const serialised = this.serializer.serialize(
+      CarBrandDto,
+      brands,
+      rest?.locale || 'en'
+    );
 
-    createBrand(data: CreateBrandDTO) {
-        return new CreateBrandUseCase(this.brandRepository, this.translationsRepo, this.serializer, this.messageBroker).execute(data)
-    }
+    return new IReturnValueWithPagination({
+      success: true,
+      data: serialised as unknown as CarBrandDto[],
+      limit,
+      page,
+      total: count,
+      message: 'Brands fetched successfully',
+    });
+  }
 
-    updateBrand(id: string, data: UpdateBrandDTO, actor: User) {
-        return new UpdateCarBrandUseCase(this.brandRepository, this.messageBroker, this.serializer).execute(id, data, actor)
-    }
+  createBrand(data: CreateBrandDTO) {
+    return new CreateBrandUseCase(
+      this.brandRepository,
+      this.translationsRepo,
+      this.serializer,
+      this.messageBroker
+    ).execute(data);
+  }
 
-    deleteBrands(id: string | string[], actor: User, hardDelete?: boolean) {
-        return new DeleteCarBrandUseCase(this.brandRepository, this.messageBroker).execute(id, actor, hardDelete)
-    }
+  updateBrand(id: string, data: UpdateBrandDTO, actor: User) {
+    return new UpdateCarBrandUseCase(
+      this.brandRepository,
+      this.messageBroker,
+      this.serializer
+    ).execute(id, data, actor);
+  }
+
+  deleteBrands(id: string | string[], actor: User, hardDelete?: boolean) {
+    return new DeleteCarBrandUseCase(
+      this.brandRepository,
+      this.messageBroker
+    ).execute(id, actor, hardDelete);
+  }
 }

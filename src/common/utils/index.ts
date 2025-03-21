@@ -1,5 +1,6 @@
+// eslint-disable no-useless-escape
 export const passwordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};:'",.<>?/])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};:'",.<>?/]+$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+=\-[\]{};:'",.<>?/])[A-Za-z\d!@#$%^&*()_+=\-[\]{};:'",.<>?/]+$/;
 
 export class IReturnValue<Data = unknown> {
   success: boolean;

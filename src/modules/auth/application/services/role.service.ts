@@ -2,7 +2,7 @@ import { Inject, Service } from 'typedi';
 import { Role, User } from '@/common/entities';
 import { RoleRepository } from '../../infrastructure/repositories/role.repository';
 import { PermissionRepository } from '../../infrastructure/repositories/permission.repository';
-import { In, Repository } from 'typeorm';
+import { In } from 'typeorm';
 import slugify from '@/common/utils/slugify';
 import { AppError } from '@/common/utils';
 import { ResponseCodes } from '@/common/enums';

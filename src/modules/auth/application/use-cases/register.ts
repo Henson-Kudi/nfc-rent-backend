@@ -79,7 +79,7 @@ class RegisterUseCase
       });
     }
 
-    const { confirmPassword, roles, ...rest } = request;
+    const { roles, ...rest } = request;
 
     // We need to attach default user role to this user if roles where not set in request
     let userRoles: Role[] = await this.roleRepository.find({

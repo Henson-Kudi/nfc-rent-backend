@@ -128,7 +128,7 @@ class Login
     if (session) {
       try {
         this.tokenManager.verifyJwtToken('REFRESH_TOKEN', session.refreshToken);
-      } catch (err) {
+      } catch (_) {
         // If its google login, create a new session
         if (data.loginType === LoginType.GOOGLE) {
           session = this.sessionRepo.create({
@@ -235,7 +235,7 @@ class Login
     );
     session.expiresAt = refreshTokenExpiry;
 
-    await this.sessionRepo.update({ id: session.id }, session);
+    session = await this.sessionRepo.save(session);
 
     this.messageBroker.publishMessage<User>(loggedIn, {
       data: user,

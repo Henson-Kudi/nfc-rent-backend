@@ -8,15 +8,15 @@ export const MessageBrokerToken = new Token<IMessageBroker>();
 export class MessageBroker implements IMessageBroker {
   private subscriber: RedisClientType;
   private publisher: RedisClientType;
-  private isSubscriberConnected: boolean = false;
-  private isPublisherConnected: boolean = false;
+  isSubscriberConnected: boolean = false;
+  isPublisherConnected: boolean = false;
 
   constructor() {
     this.subscriber = createClient({ url: envConf.REDIS_URL });
     this.publisher = createClient({ url: envConf.REDIS_URL });
   }
 
-  private readonly defaultMessageHandler: MessageHandler = async (
+  private readonly defaultMessageHandler: MessageHandler = (
     channel,
     message
   ) => {
@@ -32,16 +32,16 @@ export class MessageBroker implements IMessageBroker {
       await this.publisher.publish(channel, JSON.stringify(message));
       logger.info(`Message published to channel: ${channel}`);
     } catch (err) {
-      logger.error(`Failed to publish ${channel} event`)
+      logger.error(`Failed to publish ${channel} event`);
       logger.error('Error publishing message to Redis:', err);
     }
   }
 
   // Subscribe to a channel
-  async subscribe(
+  subscribe(
     channel: string,
     callback: MessageHandler = this.defaultMessageHandler
-  ): Promise<void> {
+  ) {
     return this.subscriber.subscribe(channel, callback);
   }
 

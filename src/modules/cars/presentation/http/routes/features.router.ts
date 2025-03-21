@@ -10,10 +10,21 @@ import { ValidateFeatureNameController } from '../controllers/features/validate-
 
 const featuresRouter = Router();
 
-featuresRouter.route('/').get(requestHandler(new GetFeaturesController())).post(requestHandler(new CreateFeaturesController())).delete(requestHandler(new DeleteCarFeaturesController()));
+featuresRouter
+  .route('/')
+  .get(requestHandler(new GetFeaturesController()))
+  .post(requestHandler(new CreateFeaturesController()))
+  .delete(requestHandler(new DeleteCarFeaturesController()));
 
-featuresRouter.get('/validate-name', requestHandler(new ValidateFeatureNameController()))
+featuresRouter.get(
+  '/validate-name',
+  requestHandler(new ValidateFeatureNameController())
+);
 
-featuresRouter.route('/:id').get(requestHandler(new GetFeatureController())).put(requestHandler(new UpdateCarFeatureController())).delete(requestHandler(new DeleteCarFeatureController()));
+featuresRouter
+  .route('/:id')
+  .get(requestHandler(new GetFeatureController()))
+  .put(requestHandler(new UpdateCarFeatureController()))
+  .delete(requestHandler(new DeleteCarFeatureController()));
 
 export default featuresRouter;

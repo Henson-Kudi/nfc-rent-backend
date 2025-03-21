@@ -44,7 +44,7 @@ export class LoginDto {
   constructor(data: LoginData) {
     this.email = data?.email;
     this.password = data?.password;
-    this.loginType = data?.loginType || 'email';
+    this.loginType = (data?.loginType as LoginType) || LoginType.EMAIL;
     this.idToken = data?.idToken;
     this.deviceName = data.deviceName || 'unknown';
     this.location = data?.location || 'unknown';

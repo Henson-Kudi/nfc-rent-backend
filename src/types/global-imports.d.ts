@@ -4,6 +4,10 @@ import { JwtPayload, SignOptions } from 'jsonwebtoken';
 import { IncomingHttpHeaders } from 'http';
 import { Request } from 'express';
 import { User } from '@/common/entities';
+import {
+  SupportedCurrencies as supportedCurrencies,
+  CarListingType as carListingType,
+} from '@/common/enums';
 
 declare module 'jsonwebtoken' {
   export interface JwtPayload {
@@ -48,7 +52,9 @@ declare global {
   interface ITokenManager {
     generateToken(
       type: JwtType,
+
       payload: JwtPayload,
+
       options?: SignOptions
     ): string;
 
@@ -56,4 +62,7 @@ declare global {
 
     decodeJwtToken(token: string): JwtPayload;
   }
+
+  type SupportedCurrencies = supportedCurrencies;
+  type CarListingType = carListingType;
 }

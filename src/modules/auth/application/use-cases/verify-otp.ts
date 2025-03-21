@@ -173,8 +173,6 @@ class VerifyOtp
         lastActiveAt: new Date(),
       });
 
-      await this.sessionRepo.save(session);
-
       isNewSession = true;
     } else {
       session.refreshToken = refreshToken;
@@ -182,9 +180,7 @@ class VerifyOtp
       session.lastActiveAt = new Date();
     }
 
-    if (!isNewSession) {
-      await this.sessionRepo.update({ id: session.id }, session);
-    }
+    session = await this.sessionRepo.save(session);
 
     return new IReturnValue({
       success: true,

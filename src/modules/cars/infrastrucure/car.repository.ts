@@ -3,8 +3,6 @@ import slugify from '@/common/utils/slugify';
 import { Service, Token } from 'typedi';
 import { DataSource, Repository } from 'typeorm';
 
-
-
 export interface CarRepository extends Repository<Car> {
   getCars(
     filter?: CarFilter,
@@ -76,12 +74,13 @@ function getCarsRepository(dataSource: DataSource) {
         query.orderBy(`car.${sortBy}`, sortOrder);
       }
 
-      let groupByString = 'car.id, trans.id, brand.id, model.id, brandtrans.id, modeltrans.id, features.id, featurestrans.id, media.id, rentalpricing.id'
+      let groupByString =
+        'car.id, trans.id, brand.id, model.id, brandtrans.id, modeltrans.id, features.id, featurestrans.id, media.id, rentalpricing.id';
 
-      if (options?.withDocuments) groupByString += ', documents.id'
-      if (options?.withHistory) groupByString += ', history.id'
-      if (options?.withOwnerDetails) groupByString += ', ownershipdetails.id'
-      if (options?.withAddons) groupByString += ', availableaddons.id'
+      if (options?.withDocuments) groupByString += ', documents.id';
+      if (options?.withHistory) groupByString += ', history.id';
+      if (options?.withOwnerDetails) groupByString += ', ownershipdetails.id';
+      if (options?.withAddons) groupByString += ', availableaddons.id';
 
       return query
         .groupBy(groupByString)
@@ -92,7 +91,6 @@ function getCarsRepository(dataSource: DataSource) {
     },
 
     getCar(id: string, options?: CarFilterOptions) {
-
       return this.getCarBaseQuery(options)
         .where('car.id = :id', { id })
         .getOne();
@@ -105,12 +103,13 @@ function getCarsRepository(dataSource: DataSource) {
     },
 
     getCarBaseQuery(options?: CarFilterOptions) {
-      const q = this.createQueryBuilder('car').leftJoinAndSelect(
-        'car.translations',
-        'trans',
-        'trans.locale IN (:...locales)',
-        { locales: [options?.locale || this.defaultLocale] }
-      )
+      const q = this.createQueryBuilder('car')
+        .leftJoinAndSelect(
+          'car.translations',
+          'trans',
+          'trans.locale IN (:...locales)',
+          { locales: [options?.locale || this.defaultLocale] }
+        )
         // Lookup brand
         .leftJoinAndSelect('car.brand', 'brand')
         .leftJoinAndSelect(
@@ -138,17 +137,17 @@ function getCarsRepository(dataSource: DataSource) {
         // lookup media
         .leftJoinAndSelect('car.media', 'media')
         // lookup pricing
-        .leftJoinAndSelect(
-          'car.rentalPricings',
-          'rentalpricing',
-        );
+        .leftJoinAndSelect('car.rentalPricings', 'rentalpricing');
 
-      if (options?.withDocuments) q.leftJoinAndSelect('car.documents', 'documents')
-      if (options?.withOwnerDetails) q.leftJoinAndSelect('car.ownershipDetails', 'ownershipdetails')
-      if (options?.withHistory) q.leftJoinAndSelect('car.history', 'history')
-      if (options?.withAddons) q.leftJoinAndSelect('car.availableAddons', 'availableaddons')
+      if (options?.withDocuments)
+        q.leftJoinAndSelect('car.documents', 'documents');
+      if (options?.withOwnerDetails)
+        q.leftJoinAndSelect('car.ownershipDetails', 'ownershipdetails');
+      if (options?.withHistory) q.leftJoinAndSelect('car.history', 'history');
+      if (options?.withAddons)
+        q.leftJoinAndSelect('car.availableAddons', 'availableaddons');
 
-      return q
+      return q;
     },
   });
 }
@@ -156,8 +155,6 @@ function getCarsRepository(dataSource: DataSource) {
 @Service()
 export class CarRepositoryFacrory {
   static create(dataSource: DataSource) {
-    return dataSource
-      .getRepository(Car)
-      .extend(getCarsRepository(dataSource));
+    return dataSource.getRepository(Car).extend(getCarsRepository(dataSource));
   }
 }

@@ -3,5 +3,4 @@ import { Service } from 'typedi';
 import { Repository } from 'typeorm';
 
 @Service()
-export class CarMediaRepository extends Repository<CarMedia> { }
-
+export class CarMediaRepository extends Repository<CarMedia> {}

@@ -7,98 +7,121 @@ import { CarFeatureRepository } from '@/modules/cars/infrastrucure/feature.repos
 import { Not } from 'typeorm';
 import { SerializerService } from '@/common/services/serializer.service';
 import logger from '@/common/utils/logger';
-import { featureUpdated } from '../../../utils/messages.json'
+import { FleetEvents } from '@/common/message-broker/events/fleet.events';
 
-export class UpdateCarFeatureUseCase implements IUseCase<[string, UpdateFeatureDTO, User], IReturnValue<CarFeatureDto>> {
-
+export class UpdateCarFeatureUseCase
+  implements
+    IUseCase<[string, UpdateFeatureDTO, User], IReturnValue<CarFeatureDto>>
+{
   constructor(
     private readonly featureRepository: CarFeatureRepository,
     private readonly messageBus: IMessageBroker,
-    private readonly serializer: SerializerService,
-  ) { }
+    private readonly serializer: SerializerService
+  ) {}
   async execute(
     id: string,
     data: UpdateFeatureDTO,
     actor: User
   ): Promise<IReturnValue<CarFeatureDto>> {
-    const validData = await new UpdateFeatureDto(data).validate()
+    const validData = await new UpdateFeatureDto(data).validate();
 
-    const { translations, ...featureData } = validData
+    const { translations, ...featureData } = validData;
 
-    const enTranslation = validData.translations.find(trns => trns.locale === 'en')
+    const enTranslation = validData.translations.find(
+      (trns) => trns.locale === 'en'
+    );
 
     // Ensure Feature exists
     const foundFeature = await this.featureRepository.findOne({
       where: { id },
-      relations: ['translations']
-    })
+      relations: ['translations'],
+    });
 
     if (!foundFeature) {
       throw new AppError({
-        message: "Feature does not exist",
-        statusCode: ResponseCodes.NotFound
-      })
+        message: 'Feature does not exist',
+        statusCode: ResponseCodes.NotFound,
+      });
     }
 
     // Ensure that en translation to be updated is not already used by another Feature
     if (enTranslation) {
-      const found = await this.featureRepository.findOneBy({ id: Not(id), slug: slugify(enTranslation.name) })
+      const found = await this.featureRepository.findOneBy({
+        id: Not(id),
+        slug: slugify(enTranslation.name),
+      });
 
       if (found) {
         throw new AppError({
           message: `Feature name ${enTranslation?.name} already exists!`,
-          statusCode: ResponseCodes.BadRequest
-        })
+          statusCode: ResponseCodes.BadRequest,
+        });
       }
     }
 
-    const updatedFeature = await this.featureRepository.manager.transaction(async (manager) => {
-      // Retrieve repositories from the transactional manager. To ensure transactions are atomic
+    const updatedFeature = await this.featureRepository.manager.transaction(
+      async (manager) => {
+        // Retrieve repositories from the transactional manager. To ensure transactions are atomic
 
-      const featureRepo = manager.getRepository(this.featureRepository.target);
+        const featureRepo = manager.getRepository(
+          this.featureRepository.target
+        );
 
-      const translationRepo = manager.getRepository(CarFeatureTranslation);
+        const translationRepo = manager.getRepository(CarFeatureTranslation);
 
-      // Create and save the Feature entity
-      const feature = featureRepo.merge(foundFeature, {
-        code: enTranslation?.name?.toLowerCase(),
-        slug: enTranslation ? slugify(enTranslation?.name) : undefined,
-        category: featureData?.category as FeatureCategory || undefined,
-        isHighlighted: featureData?.isHighlighted
-      });
-      const updatedFeature = await featureRepo.save(feature);
-
-      // Update translations (if any)
-      if (translations && translations?.length) {
-        const existingTranslationsMap = new Map(foundFeature?.translations?.map(itm => [itm.locale, itm]))
-
-        const translationEntities = translations.map(trn => {
-          const existing = existingTranslationsMap.get(trn.locale)
-
-          return existing ? translationRepo.merge(existing, trn) : translationRepo.create({
-            ...trn,
-            parent: updatedFeature,
-            parentId: updatedFeature.id,
-          })
+        // Create and save the Feature entity
+        const feature = featureRepo.merge(foundFeature, {
+          code: enTranslation?.name?.toLowerCase(),
+          slug: enTranslation ? slugify(enTranslation?.name) : undefined,
+          category: (featureData?.category as FeatureCategory) || undefined,
+          isHighlighted: featureData?.isHighlighted,
         });
-        const savedTranslations = await translationRepo.save(translationEntities);
-        updatedFeature.translations = savedTranslations;
+        const updatedFeature = await featureRepo.save(feature);
+
+        // Update translations (if any)
+        if (translations && translations?.length) {
+          const existingTranslationsMap = new Map(
+            foundFeature?.translations?.map((itm) => [itm.locale, itm])
+          );
+
+          const translationEntities = translations.map((trn) => {
+            const existing = existingTranslationsMap.get(trn.locale);
+
+            return existing
+              ? translationRepo.merge(existing, trn)
+              : translationRepo.create({
+                  ...trn,
+                  parent: updatedFeature,
+                  parentId: updatedFeature.id,
+                });
+          });
+          const savedTranslations =
+            await translationRepo.save(translationEntities);
+          updatedFeature.translations = savedTranslations;
+        }
+
+        return updatedFeature;
       }
+    );
 
-      return updatedFeature;
-    });
-
-    const serialisedFeature = this.serializer.serialize(CarFeatureDto, updatedFeature, enTranslation?.locale)
+    const serialisedFeature = this.serializer.serialize(
+      CarFeatureDto,
+      updatedFeature,
+      enTranslation?.locale
+    );
 
     try {
-      this.messageBus.publishMessage(featureUpdated, {
+      this.messageBus.publishMessage(FleetEvents.feature.updated, {
         data: {
           data: serialisedFeature,
-          actor
-        }
-      })
+          actor,
+        },
+      });
     } catch (error) {
-      logger.error(`Failed to pubish message ${featureUpdated}`, error)
+      logger.error(
+        `Failed to pubish message ${FleetEvents.feature.updated}`,
+        error
+      );
     }
 
     return new IReturnValue({

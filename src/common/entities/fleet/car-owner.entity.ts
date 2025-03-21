@@ -7,7 +7,10 @@ export class CarOwnershipDetail extends Base {
   @ManyToOne(() => Car, (car) => car.ownershipDetails, { onDelete: 'CASCADE' })
   car!: Car;
 
-  @ManyToOne(() => User, (user) => user.ownedCars, { nullable: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.ownedCars, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
   owner!: User;
 
   @Column()

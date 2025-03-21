@@ -116,18 +116,20 @@ function getModelsRepository(dataSource: DataSource) {
     },
 
     getModelBaseQuery(locale?: SupportedLocales) {
-      return this.createQueryBuilder('model').leftJoinAndSelect(
-        'model.translations',
-        'trans',
-        'trans.locale IN (:...locales)',
-        { locales: [locale || this.defaultLocale, this.defaultLocale] }
-      ).leftJoinAndSelect('model.brand', 'brand')
+      return this.createQueryBuilder('model')
+        .leftJoinAndSelect(
+          'model.translations',
+          'trans',
+          'trans.locale IN (:...locales)',
+          { locales: [locale || this.defaultLocale, this.defaultLocale] }
+        )
+        .leftJoinAndSelect('model.brand', 'brand')
         .leftJoinAndSelect(
           'brand.translations',
           'brandtrans',
           'brandtrans.locale = :locale',
           { locale: locale }
-        )
+        );
     },
   });
 }

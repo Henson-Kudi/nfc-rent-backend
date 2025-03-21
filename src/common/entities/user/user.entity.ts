@@ -1,5 +1,13 @@
 import { LoginType, TOTPStatus } from '@/common/enums';
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
 import { Base } from '../base';
 import { Session, OTP, Role, CarOwnershipDetail, Booking, Driver } from '..';
 import { Exclude } from 'class-transformer';

@@ -46,12 +46,35 @@ const envConf = {
   tronPrivateKey: process.env.TRON_PRIVATE_KEY || '',
   bitPay: {
     baseUrl: process.env?.BITPAY_API_URL || '',
-    apiKey: process.env?.BITPAY_API_KEY || ''
+    apiKey: process.env?.BITPAY_API_KEY || '',
   },
   coinbase: {
     baseUrl: process.env?.COINBASE_API_URL || '',
     apiKey: process.env?.COINBASE_API_KEY || '',
-    webhookKey: process.env?.COINBASE_WEBHOOK_KEY || ''
+    webhookKey: process.env?.COINBASE_WEBHOOK_KEY || '',
+  },
+  pdfAdminPassword: process.env?.PDF_ADMIN_PASSWORD || 'admin@1234',
+  aws: {
+    s3BucketName: process.env?.AWS_S3_BUCKET_NAME || 'your-s3-bucket-name',
+    s3Region: process.env?.AWS_S3_REGION || 'your-s3-region',
+    s3AccessKeyId: process.env?.AWS_S3_ACCESS_KEY_ID || 'your-s3-access-key-id',
+    s3SecretAccessKey:
+      process.env?.AWS_S3_SECRET_ACCESS_KEY || 'your-s3-secret-access-key',
+  },
+
+  notification: {
+    email: {
+      defaultSender:
+        process.env.DEFAULT_EMAIL_SENDER ||
+        '<HK Solutions infos@hksolutions.com>',
+      authUser: process.env?.EMAIL_AUTH_USER || '',
+      authPass: process.env?.EMAIL_AUTH_PASSWORD || '',
+    },
+    sms: {
+      sid: process.env?.TWILIOTWILIO_ACCOUNT_SID || '',
+      authToken: process.env?.TWILIO_AUTH_TOKEN || '',
+      defaultSender: process.env.DEFAULT_SMS_SENDER || '+237588629123',
+    },
   },
 };
 

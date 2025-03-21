@@ -16,6 +16,7 @@ export function requestHandlerWithCookie<T = unknown>(
         );
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = result?.data as any;
 
       if (!data?.requiresOtp && data?.refreshToken) {

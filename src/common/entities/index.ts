@@ -19,6 +19,9 @@ export { Car, CarTranslation } from './fleet/car.entity';
 export { Addon } from './booking/addon.entity';
 export { Booking } from './booking/booking.entity';
 export { Contract } from './booking/contract.entity';
-export { ContractVoilation, ContractViolationChargeSetting } from './booking/contract-voilation.entity';
+export {
+  ContractVoilation,
+  ContractViolationChargeSetting,
+} from './booking/contract-voilation.entity';
 export { Payment } from './booking/payment.entity';
 export { AddressMapping } from './booking/address-mapping.entity';

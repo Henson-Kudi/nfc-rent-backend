@@ -8,13 +8,23 @@ import { UpdateCarModelController } from '../controllers/models/update-model.con
 import { DeleteCarModelController } from '../controllers/models/delete-model.controller';
 import { ValidateModelNameController } from '../controllers/models/validate-name.controller';
 
-
 const modelsRouter = Router();
 
-modelsRouter.route('/').get(requestHandler(new GetModelsController())).post(requestHandler(new CreateModelsController())).delete(requestHandler(new DeleteCarModelsController()));
+modelsRouter
+  .route('/')
+  .get(requestHandler(new GetModelsController()))
+  .post(requestHandler(new CreateModelsController()))
+  .delete(requestHandler(new DeleteCarModelsController()));
 
-modelsRouter.get('/validate-name', requestHandler(new ValidateModelNameController()))
+modelsRouter.get(
+  '/validate-name',
+  requestHandler(new ValidateModelNameController())
+);
 
-modelsRouter.route('/:id').get(requestHandler(new GetModelController())).put(requestHandler(new UpdateCarModelController())).delete(requestHandler(new DeleteCarModelController()));
+modelsRouter
+  .route('/:id')
+  .get(requestHandler(new GetModelController()))
+  .put(requestHandler(new UpdateCarModelController()))
+  .delete(requestHandler(new DeleteCarModelController()));
 
 export default modelsRouter;

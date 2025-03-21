@@ -13,9 +13,9 @@ type OneTimeOtpParams = {
   otp: string;
 };
 
-const handleUserLoginMessage: MessageHandler = async (message, channel) => {
-  const passwordManager = Container.get(PasswordManagerToken)
-  const OtpRepository = Container.get(OTPRepository)
+const handleUserLoginMessage: MessageHandler = async (message) => {
+  const passwordManager = Container.get(PasswordManagerToken);
+  const OtpRepository = Container.get(OTPRepository);
   // generate otp code
   // hash the code
   // save in db
@@ -48,24 +48,17 @@ const handleUserLoginMessage: MessageHandler = async (message, channel) => {
     const otpExpireAt = moment().add(15, 'minutes').toDate();
 
     try {
-      await OtpRepository.save(OtpRepository.create({
-        expireAt: otpExpireAt,
-        token: hashedOtp,
-        userId: user.id,
-        user
-      }));
-      await notificationsService.sendNotification.execute<OneTimeOtpParams>(
-        new SendNotificationDTO(
-          'EMAIL',
-          user.email,
-          user.id,
-          'one time otp',
-          'HIGH',
-          false,
-          undefined,
-          'en'
-        ),
-        { otp: otpCode }
+      await OtpRepository.save(
+        OtpRepository.create({
+          expireAt: otpExpireAt,
+          token: hashedOtp,
+          userId: user.id,
+          user,
+        })
+      );
+      await notificationsService.send(
+        'EMAIL',
+        { otp: otpCode } as any
       );
     } catch (error) {
       logger.error(error);

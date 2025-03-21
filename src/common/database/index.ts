@@ -2,7 +2,6 @@ import { DataSource } from 'typeorm';
 import envConf from '@/config/env.conf';
 import logger from '../utils/logger';
 import { runCommand } from '@/scripts/migration';
-import Container from 'typedi';
 
 // 1. Create admin connection to default 'postgres' DB
 export const dataSource = new DataSource({
@@ -34,9 +33,9 @@ async function generateFreshMigrations() {
       `npx ts-node -r tsconfig-paths/register node_modules/typeorm/cli.js migration:generate src/migrations/LatestSchema -d src/common/database/index.ts`
     );
 
-    console.log('✅ All migrations generated successfully!');
+    logger.info('✅ All migrations generated successfully!');
   } catch (error) {
-    console.error('❌ Migration generation failed!', error);
+    logger.error('❌ Migration generation failed!', error);
     throw error;
   }
 }

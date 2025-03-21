@@ -40,23 +40,23 @@ export default async function googleLogin(
 
   // If no user, create a new user
   if (!user) {
-    user = repo.create({
-      email: payload.email.toLowerCase(),
-      emailVerified: true,
-      fullName:
-        payload?.name ||
-        `${payload?.family_name} ${payload?.given_name}`.trim() ||
-        'No Name',
-      googleId: payload.sub,
-      phone: null,
-      phoneVerified: false,
-      isActive: true,
-      loginType: LoginType.GOOGLE,
-      photo: payload.picture,
-      mfaEnabled: false,
-    } as any)[0];
-
-    await repo.save(user);
+    user = await repo.save(
+      repo.create({
+        email: payload.email.toLowerCase(),
+        emailVerified: true,
+        fullName:
+          payload?.name ||
+          `${payload?.family_name} ${payload?.given_name}`.trim() ||
+          'No Name',
+        googleId: payload.sub,
+        phone: undefined,
+        phoneVerified: false,
+        isActive: true,
+        loginType: LoginType.GOOGLE,
+        photo: payload.picture,
+        mfaEnabled: false,
+      })
+    );
 
     if (!user) {
       throw new AppError({

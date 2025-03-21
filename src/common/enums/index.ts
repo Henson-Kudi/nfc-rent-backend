@@ -9,11 +9,12 @@ export enum SupportedCryptoCurrencies {
   TRC20 = 'TRC20',
   ETH = 'ETH',
   ERC20 = 'ERC20',
-  USDT = 'USDT'
+  USDT = 'USDT',
 }
 
-
-export type SupportedCurrencies = SupportedCryptoCurrencies | SupportedFiatCurrencies
+export type SupportedCurrencies =
+  | SupportedCryptoCurrencies
+  | SupportedFiatCurrencies;
 
 export enum ResponseCodes {
   BadRequest = 400,
@@ -239,19 +240,19 @@ export enum CarPricingUnit {
 export enum DriverType {
   GCC = 'GCC',
   TOURIST = 'TOURIST',
-  RESIDENT = 'RESIDENT'
+  RESIDENT = 'RESIDENT',
 }
 
 export enum ContractViolationType {
-  TRAFFIC_FINE = "TRAFFIC FINE",
-  LATE_RETURN = "LATE RETURN",
-  SMOKING = "SMOKING",
-  DIRTY_RETURN = "DIRTY RETURN",
-  DESERT_DRIVING = "DESERT DRIVING",
-  DAMAGE = "DAMAGE",
-  FUEL_SHORTAGE = "FUEL SHORTAGE",
-  SALIK_TOLL = "SALIK TOLL",
-  BORDER_CROSSING = "BORDER CROSSING",
-  MILEAGE_EXCEEDED = "MILEAGE EXCEEDED",
-  OTHER = "OTHER",
+  TRAFFIC_FINE = 'TRAFFIC FINE',
+  LATE_RETURN = 'LATE RETURN',
+  SMOKING = 'SMOKING',
+  DIRTY_RETURN = 'DIRTY RETURN',
+  DESERT_DRIVING = 'DESERT DRIVING',
+  DAMAGE = 'DAMAGE',
+  FUEL_SHORTAGE = 'FUEL SHORTAGE',
+  SALIK_TOLL = 'SALIK TOLL',
+  BORDER_CROSSING = 'BORDER CROSSING',
+  MILEAGE_EXCEEDED = 'MILEAGE EXCEEDED',
+  OTHER = 'OTHER',
 }

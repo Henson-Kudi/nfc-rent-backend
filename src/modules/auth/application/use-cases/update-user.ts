@@ -7,14 +7,15 @@ import { UpdateUserDTO } from '@/common/dtos';
 
 export class UpdateUserUseCase
   implements
-  IUseCase<
-    [string, UpdateUserData],
-    IReturnValue<{ id: string; updated: UpdateUserData }>
-  > {
+    IUseCase<
+      [string, UpdateUserData],
+      IReturnValue<{ id: string; updated: UpdateUserData }>
+    >
+{
   constructor(
     private readonly repo: UserRepository,
     private readonly messageBroker: IMessageBroker
-  ) { }
+  ) {}
 
   async execute(
     userId: string,

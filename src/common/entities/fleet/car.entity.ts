@@ -18,7 +18,7 @@ import {
   CarOwnershipDetail,
   CarHistoryRecord,
   Addon,
-  Booking
+  Booking,
 } from '..';
 import {
   CarCategory,
@@ -177,13 +177,13 @@ export class Car extends Base {
   availableAddons!: Addon[];
 
   get images() {
-    return this.media.filter(itm => itm.type === MediaType.IMAGE)
+    return this.media.filter((itm) => itm.type === MediaType.IMAGE);
   }
   get videos() {
-    return this.media.filter(itm => itm.type === MediaType.VIDEO)
+    return this.media.filter((itm) => itm.type === MediaType.VIDEO);
   }
   get virtualTourMedia() {
-    return this.media.filter(itm => itm.type === MediaType.MODEL_3D)
+    return this.media.filter((itm) => itm.type === MediaType.MODEL_3D);
   }
 }
 

@@ -17,10 +17,21 @@ carsRouter.use('/brands', brandsRouter);
 carsRouter.use('/models', modelsRouter);
 carsRouter.use('/features', featuresRouter);
 
-carsRouter.route('/').post(requestHandler(new CreateCarsController())).get(requestHandler(new GetCarsController())).delete(requestHandler(new DeleteCarsController()))
+carsRouter
+  .route('/')
+  .post(requestHandler(new CreateCarsController()))
+  .get(requestHandler(new GetCarsController()))
+  .delete(requestHandler(new DeleteCarsController()));
 
-carsRouter.get('/validate-name', requestHandler(new ValidateCarNameController()))
+carsRouter.get(
+  '/validate-name',
+  requestHandler(new ValidateCarNameController())
+);
 
-carsRouter.route('/:id').get(requestHandler(new GetCarController())).put(requestHandler(new UpdateCarController())).delete(requestHandler(new DeleteCarController()))
+carsRouter
+  .route('/:id')
+  .get(requestHandler(new GetCarController()))
+  .put(requestHandler(new UpdateCarController()))
+  .delete(requestHandler(new DeleteCarController()));
 
 export default carsRouter;

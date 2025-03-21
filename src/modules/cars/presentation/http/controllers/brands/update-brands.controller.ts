@@ -6,20 +6,21 @@ import { Request } from 'express';
 import Container from 'typedi';
 
 export class UpdateCarBrandsController
-  implements IController<Promise<IReturnValue<CarBrandDto>>> {
+  implements IController<Promise<IReturnValue<CarBrandDto>>>
+{
   handle(request: Request): Promise<IReturnValue<CarBrandDto>> {
-    const id = request.params.id
+    const id = request.params.id;
     if (!id) {
       throw new AppError({
         message: 'Invalid brand identifier',
-        statusCode: ResponseCodes.BadRequest
-      })
+        statusCode: ResponseCodes.BadRequest,
+      });
     }
     if (!request.user) {
       throw new AppError({
         message: 'Unauthenticated user',
-        statusCode: ResponseCodes.UnAuthorised
-      })
+        statusCode: ResponseCodes.UnAuthorised,
+      });
     }
 
     const brandsService = Container.get(CarBrandService);

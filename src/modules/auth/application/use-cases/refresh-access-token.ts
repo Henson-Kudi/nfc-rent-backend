@@ -34,6 +34,7 @@ export class RefreshAccessToken
     let session = await this.sessionRepo.findOneBy({
       userId: verifiedToken.userId,
       device,
+      location,
     });
 
     if (!user || !user.isActive || user.isDeleted || !session) {

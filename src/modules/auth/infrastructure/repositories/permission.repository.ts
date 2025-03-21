@@ -4,8 +4,7 @@ import { Repository } from 'typeorm';
 
 @Service()
 export class PermissionRepository extends Repository<Permission> {
-  async userHasAccess(userId: string, identifier: string): Promise<boolean> {
-    console.log(identifier, 'identifier');
+  userHasAccess(userId: string, identifier: string): Promise<boolean> {
     return this.createQueryBuilder('permission')
       .innerJoin('permission.roles', 'role')
       .innerJoin('role.users', 'user')

@@ -1,6 +1,5 @@
 import requestHandler from '@/common/request/adapter';
 import { Router } from 'express';
-import RegisterUserController from '../http/controller/register.controller';
 import authenticateRequest from '@/common/middleware/authenticate-request';
 import GetAccountController from '../http/controller/get-account.controller';
 import { hasPermission } from '@/common/middleware/permit-resource';

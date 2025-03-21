@@ -84,7 +84,8 @@ async function createRoleEntity(
   role.name = roleDef.name;
   role.slug = roleDef.slug;
   // role.description = roleDef.description;
-  return await manager.save(role);
+  const saved = await manager.save(role);
+  return saved;
 }
 
 async function processRolePermissions(

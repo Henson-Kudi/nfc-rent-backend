@@ -5,9 +5,13 @@ import { Request } from 'express';
 import Container from 'typedi';
 
 export class GetCarController
-    implements IController<Promise<IReturnValue<CarDto>>> {
-    handle(request: Request): Promise<IReturnValue<CarDto>> {
-        const carsService = Container.get(CarService);
-        return carsService.getCar(request.params.id, (request?.query as unknown as CarFilterOptions));
-    }
+  implements IController<Promise<IReturnValue<CarDto>>>
+{
+  handle(request: Request): Promise<IReturnValue<CarDto>> {
+    const carsService = Container.get(CarService);
+    return carsService.getCar(
+      request.params.id,
+      request?.query as unknown as CarFilterOptions
+    );
+  }
 }

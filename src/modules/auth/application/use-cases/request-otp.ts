@@ -8,7 +8,6 @@ import { requestOtp } from '../../utils/messageTopics.json';
 import logger from '@/common/utils/logger';
 import { OTPVERIFICATIONTYPES } from '../../domain/enums';
 import { encryptData } from '@/common/utils/encryption';
-import { Repository } from 'typeorm';
 import { OTP, User } from '@/common/entities';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
 import { OTPRepository } from '../../infrastructure/repositories/otp.repository';
@@ -83,19 +82,11 @@ class RequestOTP
       // Generate new otp code for security
       const expireAt = moment().add(15, 'minutes').toDate();
 
-      await this.otpRepo.update(
-        { id: otp.id },
-        {
-          ...otp,
-          count: otp.count + 1,
-          expireAt: expireAt,
-          token: harshedOtp,
-        }
-      );
-
-      otp.expireAt = expireAt;
-      otp.token = harshedOtp;
-      otp.count += 1;
+      otp = this.otpRepo.merge(otp, {
+        count: otp.count + 1,
+        expireAt: expireAt,
+        token: harshedOtp,
+      });
     } else {
       // Save token to db and
       otp = this.otpRepo.create({
@@ -103,8 +94,6 @@ class RequestOTP
         token: harshedOtp,
         expireAt: moment().add(15, 'minutes').toDate(), // token expires after 10mins
       });
-
-      await this.otpRepo.save(otp);
     }
 
     if (!otp) {
@@ -113,6 +102,8 @@ class RequestOTP
         message: 'Failed to resend otp',
       });
     }
+
+    otp = await this.otpRepo.save(otp);
 
     const encData = {
       ...user,

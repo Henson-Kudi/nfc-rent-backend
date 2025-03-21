@@ -1,3 +1,4 @@
+import logger from '@/common/utils/logger';
 import { exec } from 'child_process';
 import path from 'path';
 
@@ -9,10 +10,10 @@ export function runCommand(command: string) {
       { cwd: path.resolve(__dirname, '../../') },
       (error, stdout, stderr) => {
         if (error) {
-          console.error(`❌ Error: ${stderr}`);
+          logger.error(`❌ Error: ${stderr}`);
           reject(error);
         } else {
-          console.log(`✅ Success: ${stdout}`);
+          logger.info(`✅ Success: ${stdout}`);
           resolve(stdout);
         }
       }

@@ -7,17 +7,17 @@
     "test": "jest",
     "start": "node dist/index.js",
     "dev": "nodemon -r tsconfig-paths/register",
-    "lint": "eslint src/",
+    "lint": "eslint --config eslint.config.mjs --no-cache src/",
     "compile": "tsc && tsc-alias",
     "fix": "eslint src/ --fix",
     "prettier": "prettier --check .",
     "format": "prettier --write '**/*.{js,ts,json,md}'",
-    "prepare": "npm.cmd run compile",
-    "pretest": "npm.cmd run compile",
-    "posttest": "npm.cmd run lint"
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run lint"
   },
   "keywords": [
-    "'e-commerce",
+    "e-commerce",
     "hk",
     "solutions",
     "multivendor'"
@@ -55,6 +55,7 @@
     "typescript-eslint": "^8.21.0"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.758.0",
     "@paralleldrive/cuid2": "^2.2.2",
     "@types/nanoid": "^3.0.0",
     "bcrypt": "^5.1.1",

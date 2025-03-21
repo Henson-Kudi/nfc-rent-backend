@@ -31,7 +31,7 @@ export class ResourceService {
     return this.moduleRepo.save(module);
   }
 
-  async getModuleTree(): Promise<Resource[]> {
+  getModuleTree(): Promise<Resource[]> {
     return this.moduleRepo.findTrees();
   }
 }

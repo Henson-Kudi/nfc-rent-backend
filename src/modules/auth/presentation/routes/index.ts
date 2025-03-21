@@ -49,7 +49,7 @@ router.post('/logout', authenticateRequest(), async (req, res, next) => {
     const result = await new LogoutController().handle(req);
 
     res.status(ResponseCodes.Success).json(result);
-  } catch (err) {
+  } catch (_) {
     res
       .status(ResponseCodes.Success)
       .json({ success: true, message: 'Logged out successfully' });

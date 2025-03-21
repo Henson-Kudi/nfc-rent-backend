@@ -5,32 +5,34 @@ import { type CarFeatureRepository } from '@/modules/cars/infrastrucure/feature.
 import { CarFeatureDto, CreateFeatureDto } from '@/common/dtos';
 import { FeatureTranslationsRepository } from '@/modules/cars/infrastrucure/feature-translation.repository';
 import { SerializerService } from '@/common/services/serializer.service';
-import { featureCreated } from '../../../utils/messages.json'
+import { FleetEvents } from '@/common/message-broker/events/fleet.events';
 import logger from '@/common/utils/logger';
 
-export class CreateFeatureUseCase implements IUseCase<[CreateFeatureDTO], IReturnValue<CarFeatureDto>> {
-
+export class CreateFeatureUseCase
+  implements IUseCase<[CreateFeatureDTO], IReturnValue<CarFeatureDto>>
+{
   constructor(
     private readonly featureRepository: CarFeatureRepository,
     private readonly translationsRepo: FeatureTranslationsRepository,
     private readonly serializer: SerializerService,
     private readonly messageBroker: IMessageBroker
-
-  ) { }
+  ) {}
 
   async execute(data: CreateFeatureDTO): Promise<IReturnValue<CarFeatureDto>> {
     // Validate the data
-    const validData = await new CreateFeatureDto(data).validate()
+    const validData = await new CreateFeatureDto(data).validate();
 
-    const { translations, ...featureData } = validData
+    const { translations, ...featureData } = validData;
 
-    const enTranslation = validData.translations.find(trns => trns.locale === 'en')
+    const enTranslation = validData.translations.find(
+      (trns) => trns.locale === 'en'
+    );
 
     if (!enTranslation) {
       throw new AppError({
         statusCode: ResponseCodes.ValidationError,
-        message: "Please provide translation with en locale."
-      })
+        message: 'Please provide translation with en locale.',
+      });
     }
 
     // Check if a Feature with the same slug (derived from the en translation) already exists
@@ -42,46 +44,62 @@ export class CreateFeatureUseCase implements IUseCase<[CreateFeatureDTO], IRetur
     if (existingFeature) {
       throw new AppError({
         statusCode: ResponseCodes.BadRequest,
-        message: `Feature with name ${enTranslation.name} already exists. Please use another name!`
-      })
+        message: `Feature with name ${enTranslation.name} already exists. Please use another name!`,
+      });
     }
 
-    const savedFeature = await this.featureRepository.manager.transaction(async (manager) => {
-      // Retrieve repositories from the transactional manager. To ensure transactions are atomic
+    const savedFeature = await this.featureRepository.manager.transaction(
+      async (manager) => {
+        // Retrieve repositories from the transactional manager. To ensure transactions are atomic
 
-      const featureRepo = manager.getRepository(this.featureRepository.target);
+        const featureRepo = manager.getRepository(
+          this.featureRepository.target
+        );
 
-      const translationRepo = manager.getRepository(this.translationsRepo.target);
+        const translationRepo = manager.getRepository(
+          this.translationsRepo.target
+        );
 
-      // Create and save the Feature entity
-      const feature = featureRepo.create({
-        code: enTranslation.name.toLowerCase(),
-        slug,
-        ...featureData,
-        category: validData.category as FeatureCategory
-      });
-      const newFeature = await featureRepo.save(feature);
+        // Create and save the Feature entity
+        const feature = featureRepo.create({
+          code: enTranslation.name.toLowerCase(),
+          slug,
+          ...featureData,
+          category: validData.category as FeatureCategory,
+        });
+        const newFeature = await featureRepo.save(feature);
 
-      // Create translation entities for each translation in the request
-      const translationEntities = translations.map(trn =>
-        translationRepo.create({
-          ...trn,
-          parent: newFeature,
-          parentId: newFeature.id,
-        })
-      );
-      const savedTranslations = await translationRepo.save(translationEntities);
-      newFeature.translations = savedTranslations;
+        // Create translation entities for each translation in the request
+        const translationEntities = translations.map((trn) =>
+          translationRepo.create({
+            ...trn,
+            parent: newFeature,
+            parentId: newFeature.id,
+          })
+        );
+        const savedTranslations =
+          await translationRepo.save(translationEntities);
+        newFeature.translations = savedTranslations;
 
-      return newFeature;
-    });
+        return newFeature;
+      }
+    );
 
-    const serialisedFeature = this.serializer.serialize(CarFeatureDto, savedFeature, enTranslation.locale)
+    const serialisedFeature = this.serializer.serialize(
+      CarFeatureDto,
+      savedFeature,
+      enTranslation.locale
+    );
 
     try {
-      this.messageBroker.publishMessage(featureCreated, { data: serialisedFeature })
+      this.messageBroker.publishMessage(FleetEvents.feature.created, {
+        data: serialisedFeature,
+      });
     } catch (error) {
-      logger.error(`Failed to pubish message ${featureCreated}`, error)
+      logger.error(
+        `Failed to pubish message ${FleetEvents.feature.created}`,
+        error
+      );
     }
 
     return new IReturnValue({

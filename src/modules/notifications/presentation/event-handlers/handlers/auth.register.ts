@@ -1,11 +1,8 @@
 import { User } from '@/common/entities';
 import logger from '@/common/utils/logger';
 import generateRandomNumber from '@/common/utils/randomNumber';
-import slugify from '@/common/utils/slugify';
 import { PasswordManagerToken } from '@/modules/auth/infrastructure/providers/password-manager';
 import { OTPRepository } from '@/modules/auth/infrastructure/repositories/otp.repository';
-import { RoleRepository } from '@/modules/auth/infrastructure/repositories/role.repository';
-import { UserRepository } from '@/modules/auth/infrastructure/repositories/user.repository';
 import notificationsService from '@/modules/notifications/application/services';
 import { SendNotificationDTO } from '@/modules/notifications/domain';
 import moment from 'moment';
@@ -15,7 +12,7 @@ type OneTimeOtpParams = {
   otp: string;
 };
 
-const handleUserRegistereMessage: MessageHandler = async (message, channel) => {
+const handleUserRegistereMessage: MessageHandler = async (message) => {
   try {
     const repo = Container.get(OTPRepository);
     const passwordManager = Container.get(PasswordManagerToken);
@@ -58,21 +55,12 @@ const handleUserRegistereMessage: MessageHandler = async (message, channel) => {
 
     await repo.save(otp);
 
-    await notificationsService.sendNotification.execute<OneTimeOtpParams>(
-      new SendNotificationDTO(
-        'EMAIL',
-        user.email,
-        user.id,
-        'one time otp',
-        'HIGH',
-        false,
-        undefined,
-        'en'
-      ),
-      { otp: otpCode }
+    await notificationsService.send(
+      'EMAIL',
+      { } as any
     );
-  } catch (err: any) {
-    logger.error(err?.message, err);
+  } catch (err) {
+    logger.error((err as Error)?.message, err);
   }
 };
 

@@ -10,10 +10,21 @@ import { ValidateBrandNameController } from '../controllers/brands/validate-bran
 
 const brandsRouter = Router();
 
-brandsRouter.route('/').get(requestHandler(new GetBrandsController())).post(requestHandler(new CreateBrandsController())).delete(requestHandler(new DeleteCarBrandsController()));
+brandsRouter
+  .route('/')
+  .get(requestHandler(new GetBrandsController()))
+  .post(requestHandler(new CreateBrandsController()))
+  .delete(requestHandler(new DeleteCarBrandsController()));
 
-brandsRouter.get('/validate-name', requestHandler(new ValidateBrandNameController()))
+brandsRouter.get(
+  '/validate-name',
+  requestHandler(new ValidateBrandNameController())
+);
 
-brandsRouter.route('/:id').get(requestHandler(new GetBrandController())).put(requestHandler(new UpdateCarBrandsController())).delete(requestHandler(new DeleteCarBrandController()));
+brandsRouter
+  .route('/:id')
+  .get(requestHandler(new GetBrandController()))
+  .put(requestHandler(new UpdateCarBrandsController()))
+  .delete(requestHandler(new DeleteCarBrandController()));
 
 export default brandsRouter;

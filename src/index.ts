@@ -8,18 +8,12 @@ import { connectCache } from './common/cache/redis-cache';
 import { connectMessageBroker } from './common/message-broker';
 import subscribeToEvents from './modules/notifications/presentation/event-handlers/subscriptions';
 import { subscriptions as authSubscriptions } from './modules/notifications/utils/message-topics.json';
-import { dataSource, initializeDb, runMigrations } from './common/database';
+import { initializeDb } from './common/database';
 import { initializeDI } from './loaders/di';
-import { seedModules } from './seeders/resources.seeder';
-import { seedDefaultRoles } from './seeders/role.seeder';
-import { HttpService } from './common/services/http.service';
-import Container from 'typedi';
-import { AddressMappingRepository } from './modules/booking/application/repository/booking.repository';
 
 // Run application
 (async () => {
   // await runMigrations()
-
 
   // Connect to datasource before starting the server
   const datsSource = await initializeDb();

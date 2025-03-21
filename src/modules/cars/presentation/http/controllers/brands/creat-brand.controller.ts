@@ -5,9 +5,10 @@ import { Request } from 'express';
 import Container from 'typedi';
 
 export class CreateBrandsController
-    implements IController<Promise<IReturnValue<CarBrandDto>>> {
-    handle(request: Request): Promise<IReturnValue<CarBrandDto>> {
-        const brandsService = Container.get(CarBrandService);
-        return brandsService.createBrand(request.body);
-    }
+  implements IController<Promise<IReturnValue<CarBrandDto>>>
+{
+  handle(request: Request): Promise<IReturnValue<CarBrandDto>> {
+    const brandsService = Container.get(CarBrandService);
+    return brandsService.createBrand(request.body);
+  }
 }

@@ -5,32 +5,34 @@ import { type CarBrandRepository } from '@/modules/cars/infrastrucure/brand.repo
 import { CarBrandDto, CreateBrandDto } from '@/common/dtos';
 import { BrandTranslationsRepository } from '@/modules/cars/infrastrucure/brand-translation.repository';
 import { SerializerService } from '@/common/services/serializer.service';
-import { brandCreated } from '../../../utils/messages.json'
+import { FleetEvents } from '@/common/message-broker/events/fleet.events';
 import logger from '@/common/utils/logger';
 
-export class CreateBrandUseCase implements IUseCase<[CreateBrandDTO], IReturnValue<CarBrandDto>> {
-
+export class CreateBrandUseCase
+  implements IUseCase<[CreateBrandDTO], IReturnValue<CarBrandDto>>
+{
   constructor(
     private readonly brandRepository: CarBrandRepository,
     private readonly translationsRepo: BrandTranslationsRepository,
     private readonly serializer: SerializerService,
     private readonly messageBroker: IMessageBroker
-
-  ) { }
+  ) {}
 
   async execute(data: CreateBrandDTO): Promise<IReturnValue<CarBrandDto>> {
     // Validate the data
-    const validData = await new CreateBrandDto(data).validate()
+    const validData = await new CreateBrandDto(data).validate();
 
-    const { translations, ...brandData } = validData
+    const { translations, ...brandData } = validData;
 
-    const enTranslation = validData.translations.find(trns => trns.locale === 'en')
+    const enTranslation = validData.translations.find(
+      (trns) => trns.locale === 'en'
+    );
 
     if (!enTranslation) {
       throw new AppError({
         statusCode: ResponseCodes.ValidationError,
-        message: "Please provide translation with en locale."
-      })
+        message: 'Please provide translation with en locale.',
+      });
     }
 
     // Check if a brand with the same slug (derived from the en translation) already exists
@@ -42,45 +44,59 @@ export class CreateBrandUseCase implements IUseCase<[CreateBrandDTO], IReturnVal
     if (existingBrand) {
       throw new AppError({
         statusCode: ResponseCodes.BadRequest,
-        message: `Brand with name ${enTranslation.name} already exists. Please use another name!`
-      })
+        message: `Brand with name ${enTranslation.name} already exists. Please use another name!`,
+      });
     }
 
-    const savedBrand = await this.brandRepository.manager.transaction(async (manager) => {
-      // Retrieve repositories from the transactional manager. To ensure transactions are atomic
+    const savedBrand = await this.brandRepository.manager.transaction(
+      async (manager) => {
+        // Retrieve repositories from the transactional manager. To ensure transactions are atomic
 
-      const brandRepo = manager.getRepository(this.brandRepository.target);
+        const brandRepo = manager.getRepository(this.brandRepository.target);
 
-      const translationRepo = manager.getRepository(this.translationsRepo.target);
+        const translationRepo = manager.getRepository(
+          this.translationsRepo.target
+        );
 
-      // Create and save the brand entity
-      const brand = brandRepo.create({
-        code: enTranslation.name.toLowerCase(),
-        slug,
-        ...brandData,
-      });
-      const newBrand = await brandRepo.save(brand);
+        // Create and save the brand entity
+        const brand = brandRepo.create({
+          code: enTranslation.name.toLowerCase(),
+          slug,
+          ...brandData,
+        });
+        const newBrand = await brandRepo.save(brand);
 
-      // Create translation entities for each translation in the request
-      const translationEntities = translations.map(trn =>
-        translationRepo.create({
-          ...trn,
-          parent: newBrand,
-          parentId: newBrand.id,
-        })
-      );
-      const savedTranslations = await translationRepo.save(translationEntities);
-      newBrand.translations = savedTranslations;
+        // Create translation entities for each translation in the request
+        const translationEntities = translations.map((trn) =>
+          translationRepo.create({
+            ...trn,
+            parent: newBrand,
+            parentId: newBrand.id,
+          })
+        );
+        const savedTranslations =
+          await translationRepo.save(translationEntities);
+        newBrand.translations = savedTranslations;
 
-      return newBrand;
-    });
+        return newBrand;
+      }
+    );
 
-    const serialisedBrand = this.serializer.serialize(CarBrandDto, savedBrand, enTranslation.locale)
+    const serialisedBrand = this.serializer.serialize(
+      CarBrandDto,
+      savedBrand,
+      enTranslation.locale
+    );
 
     try {
-      this.messageBroker.publishMessage(brandCreated, { data: serialisedBrand })
+      this.messageBroker.publishMessage(FleetEvents.brand.created, {
+        data: serialisedBrand,
+      });
     } catch (error) {
-      logger.error(`Failed to pubish message ${brandCreated}`, error)
+      logger.error(
+        `Failed to pubish message ${FleetEvents.brand.created}`,
+        error
+      );
     }
 
     return new IReturnValue({

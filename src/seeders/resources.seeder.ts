@@ -1,15 +1,14 @@
-import { DataSource } from 'typeorm';
 import resources from '@/common/utils/resources.json';
 import { Resource } from '@/common/entities';
 import logger from '@/common/utils/logger';
 import Container from 'typedi';
 import { ResourceRepository } from '@/modules/auth/infrastructure/repositories/resource.repository';
 
-export async function seedModules(dataSource: DataSource) {
+export async function seedModules() {
   const moduleRepo = Container.get(ResourceRepository);
 
   async function createModules(tree: ModuleTree, parent?: Resource) {
-    for (const [key, module] of Object.entries(tree)) {
+    for (const [, module] of Object.entries(tree)) {
       const existing = await moduleRepo.findOne({
         where: { path: module.path },
       });

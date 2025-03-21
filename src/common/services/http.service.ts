@@ -1,34 +1,45 @@
-import { Service } from "typedi";
+import { Service } from 'typedi';
 
 @Service()
 export class HttpService {
-    async get<T = unknown>(url: string | URL | Request, config?: Omit<RequestInit, 'method' | 'body'>) {
-        const res = await fetch(url, {
-            ...(config || {}),
-            body: undefined,
-            method: 'GET',
-        })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async get<T = any>(
+    url: string | URL | Request,
+    config?: Omit<RequestInit, 'method' | 'body'>
+  ) {
+    const res = await fetch(url, {
+      ...(config || {}),
+      body: undefined,
+      method: 'GET',
+    });
 
-        return await res.json() as T
-    }
+    return (await res.json()) as T;
+  }
 
-    async post<T = unknown>(url: string | URL | Request, config?: Omit<RequestInit, 'method'>) {
-        const res = await fetch(url, {
-            ...(config || {}),
-            method: 'POST',
-        })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async post<T = any>(
+    url: string | URL | Request,
+    config?: Omit<RequestInit, 'method'>
+  ) {
+    const res = await fetch(url, {
+      ...(config || {}),
+      method: 'POST',
+    });
 
-        return await res.json() as T
-    }
+    return (await res.json()) as T;
+  }
 
-    async delete<T = unknown>(url: string | URL | Request, config?: Omit<RequestInit, 'method' | 'body'>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async delete<T = any>(
+    url: string | URL | Request,
+    config?: Omit<RequestInit, 'method' | 'body'>
+  ) {
+    const res = await fetch(url, {
+      ...(config || {}),
+      body: undefined,
+      method: 'DELETE',
+    });
 
-        const res = await fetch(url, {
-            ...(config || {}),
-            body: undefined,
-            method: 'DELETE',
-        })
-
-        return await res.json() as T
-    }
+    return (await res.json()) as T;
+  }
 }

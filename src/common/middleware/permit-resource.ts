@@ -11,8 +11,8 @@ export function hasPermission(
   options?: {
     allowedRoles?: Array<RoleType>;
   }
-) {
-  return async (req: Request, _: Response, next: NextFunction) => {
+): (req: Request, res: Response, next: NextFunction) => Promise<void> {
+  return async function (req: Request, _: Response, next: NextFunction) {
     try {
       const permissionService = Container.get(PermissionService);
       const user = req.user;

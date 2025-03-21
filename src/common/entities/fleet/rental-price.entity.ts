@@ -1,7 +1,12 @@
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { Base } from '../base';
 import { Car } from '..';
-import { CarPricingUnit, SupportedCryptoCurrencies, SupportedCurrencies, SupportedFiatCurrencies } from '@/common/enums';
+import {
+  CarPricingUnit,
+  SupportedCryptoCurrencies,
+  SupportedCurrencies,
+  SupportedFiatCurrencies,
+} from '@/common/enums';
 
 @Entity()
 export class RentalPricing extends Base {
@@ -20,6 +25,11 @@ export class RentalPricing extends Base {
   @Column()
   mileageLimit!: number; // mileage limit in KM
 
-  @Column({ enum: [...Object.values(SupportedCryptoCurrencies), ...Object.values(SupportedFiatCurrencies)] })
+  @Column({
+    enum: [
+      ...Object.values(SupportedCryptoCurrencies),
+      ...Object.values(SupportedFiatCurrencies),
+    ],
+  })
   currency!: SupportedCurrencies;
 }

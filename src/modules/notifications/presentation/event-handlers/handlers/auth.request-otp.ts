@@ -8,7 +8,7 @@ type OneTimeOtpParams = {
   otp: string;
 };
 
-const handleRequestOtpMessage: MessageHandler = async (message, channel) => {
+const handleRequestOtpMessage: MessageHandler = async (message) => {
   let user: (User & { code: string; otpType: 'email' | 'phone' }) | null = null;
 
   try {
@@ -49,18 +49,9 @@ const handleRequestOtpMessage: MessageHandler = async (message, channel) => {
   const receipient = user.otpType === 'email' ? user.email : user.phone!;
 
   try {
-    await notificationsService.sendNotification.execute<OneTimeOtpParams>(
-      new SendNotificationDTO(
-        otpType,
-        receipient,
-        user.id,
-        'one time otp',
-        'HIGH',
-        false,
-        undefined,
-        'en'
-      ),
-      { otp: user.code }
+    await notificationsService.send(
+      'EMAIL',
+      { otp: user.code } as any
     );
   } catch (error) {
     logger.error((error as Error)?.message, error);

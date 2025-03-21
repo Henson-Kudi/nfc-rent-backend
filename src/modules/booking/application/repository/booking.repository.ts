@@ -1,12 +1,12 @@
-import { AddressMapping, Booking, RentalPricing } from "@/common/entities";
-import { Service } from "typedi";
-import { Repository } from "typeorm";
+import { AddressMapping, Booking, RentalPricing } from '@/common/entities';
+import { Service } from 'typedi';
+import { Repository } from 'typeorm';
 
 @Service()
-export class BookingRepository extends Repository<Booking> { }
+export class BookingRepository extends Repository<Booking> {}
 
 @Service()
-export class AddressMappingRepository extends Repository<AddressMapping> { }
+export class AddressMappingRepository extends Repository<AddressMapping> {}
 
 @Service()
-export class RentalPricingRepository extends Repository<RentalPricing> { }
+export class RentalPricingRepository extends Repository<RentalPricing> {}

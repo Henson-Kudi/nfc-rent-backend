@@ -1,8 +1,6 @@
 import envConf from '@/config/env.conf';
 import INotificationProvider from '../../application/providers';
 import { NotificationPayload, NotificationType } from '../../types';
-import { sendEmail } from '../../utils/send-email';
-import Mail from 'nodemailer/lib/mailer';
 import { sendPushNotification } from '../../utils/send-push-notification';
 import { sendSMS } from '../../utils/send-sms';
 import logger from '@/common/utils/logger';
@@ -15,7 +13,9 @@ class EmailNotificationProvider implements INotificationProvider {
     logger.info(`Sending email...`);
     logger.info(JSON.stringify(payload));
     logger.info('Email sent successfully');
-    return true;
+    return await new Promise((resolve) => {
+      resolve(true);
+    });
     // return await sendEmail({
     //     from: this.defaultSender,
     //     to: payload.receipient,
@@ -27,7 +27,9 @@ class EmailNotificationProvider implements INotificationProvider {
 }
 
 export class SMSNotificationProvider implements INotificationProvider {
-  async send(payload: NotificationPayload): Promise<boolean> {
+  async send(
+    payload: NotificationPayload<Record<string, string>>
+  ): Promise<boolean> {
     // Call SMS provider API here
     await sendPushNotification({
       token: payload.receipient,

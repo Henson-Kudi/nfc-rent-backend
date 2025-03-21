@@ -6,6 +6,7 @@ import ITemplatesRepository from '../repositories/templates-repository';
 import slugify from '@/common/utils/slugify';
 import { renderNotificationTemplate } from '../../utils/compile-template';
 import { NotificationMemoryCache } from '../../config/memory-cache';
+import logger from '@/common/utils/logger';
 
 export class SendNotification
   implements
@@ -103,7 +104,7 @@ export class SendNotification
       });
     }
 
-    console.log(compiledBody);
+    logger.info(compiledBody);
 
     const channelFactory = this.channelFactory.getChannel(input.channel);
 

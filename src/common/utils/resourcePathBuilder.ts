@@ -4,10 +4,8 @@ type BuildPaths<T extends ModuleTree> = {
   [K in keyof T]: {
     path: T[K]['path'];
   } & (T[K]['children'] extends ModuleTree
-    ? {
-        children: BuildPaths<T[K]['children']>;
-      }
-    : {});
+    ? Record<'children', BuildPaths<T[K]['children']>>
+    : Record<string, unknown>);
 };
 
 function buildPaths<T extends ModuleTree>(tree: T): BuildPaths<T> {

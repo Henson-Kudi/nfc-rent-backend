@@ -1,8 +1,4 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-} from 'typeorm';
+import { Entity, Column, ManyToOne } from 'typeorm';
 import { Base } from '../base';
 import { Car } from '..';
 import { MediaType } from '@/common/enums';
@@ -35,6 +31,6 @@ export class CarMedia extends Base {
   @Column()
   position!: number; // how to show on screen
 
-  @ManyToOne(() => Car, {onDelete: 'CASCADE'})
+  @ManyToOne(() => Car, { onDelete: 'CASCADE' })
   car!: Car;
 }
