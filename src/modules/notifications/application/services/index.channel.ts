@@ -1,30 +1,34 @@
 import { NotificationType } from "../../types";
-import { BaseNotificationChannel } from "./base-notification.channel";
 import { EmailNotificationChannel } from "./email-notification.channel";
 import { PushNotificationChannel } from "./push-notification.channel";
 import { SMSNotificationChannel } from "./sms-notification.channel";
 
+type ChannelMap = {
+    'EMAIL': EmailNotificationChannel;
+    'SMS': SMSNotificationChannel;
+    'PUSH': PushNotificationChannel;
+    // Add other channels here as needed
+};
+
 export class NotificationChannelsFactory {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private channels: Map<NotificationType, BaseNotificationChannel<any, any>> = new Map()
+    private channels: ChannelMap
 
     // Register default channels
     constructor() {
-        this.registerChannel('EMAIL', new EmailNotificationChannel())
-        this.registerChannel('PUSH', new PushNotificationChannel())
-        this.registerChannel('SMS', new SMSNotificationChannel())
+        this.channels = {
+            'EMAIL': new EmailNotificationChannel(),
+            'PUSH': new PushNotificationChannel(),
+            'SMS': new SMSNotificationChannel()
+        }
     }
 
-    getChannel(name: NotificationType) {
-        if (!this.channels.get(name)) {
+    getChannel<T extends NotificationType>(name: T): T extends 'EMAIL' ? EmailNotificationChannel : T extends 'SMS' ? SMSNotificationChannel : PushNotificationChannel {
+        const channel = this.channels?.[name]
+        if (!channel) {
             throw new Error(`Channel with name "${name}" has not been registered!`)
         }
 
-        this.channels.get(name)
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    registerChannel(channel: NotificationType, channelHandler: BaseNotificationChannel<any, any>) {
-        this.channels.set(channel, channelHandler)
+        return channel as unknown as T extends 'EMAIL' ? EmailNotificationChannel : T extends 'SMS' ? SMSNotificationChannel : PushNotificationChannel
     }
 }

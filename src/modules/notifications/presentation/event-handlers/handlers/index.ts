@@ -1,12 +1,13 @@
-import { subscriptions } from '../../../utils/message-topics.json';
+import { AuthEvents } from '@/common/message-broker/events/auth.events';
+import { UserEvents } from '@/common/message-broker/events/user.events';
 import handleUserRegistereMessage from './auth.register';
 import handleUserLoginMessage from './auth.login';
 import handleRequestOtpMessage from './auth.request-otp';
 
 const subscribeHandlers: Record<string, MessageHandler> = {
-  [subscriptions.userRegistered]: handleUserRegistereMessage,
-  [subscriptions.loggedIn]: handleUserLoginMessage,
-  [subscriptions.requestOtp]: handleRequestOtpMessage,
+  [AuthEvents.registered]: handleUserRegistereMessage,
+  [UserEvents.loggedIn]: handleUserLoginMessage,
+  [UserEvents.requestOtp]: handleRequestOtpMessage,
 };
 
 class EventHandlersFactory {

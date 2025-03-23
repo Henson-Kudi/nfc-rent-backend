@@ -4,7 +4,10 @@ import {
   CarFeatureTranslation,
   CarModelTranslation,
   CarTranslation,
+  Contract,
+  ContractVoilation,
   Driver,
+  Notification,
   OTP,
   Payment,
   Permission,
@@ -79,6 +82,13 @@ import {
 import { HttpService } from '@/common/services/http.service';
 import { PricingService } from '@/modules/booking/application/services/pricing.service';
 import { CryptoPaymentService } from '@/common/services/crypto.service';
+import { NotificationService } from '@/modules/notifications/application/services';
+import { HtmlCompilerService } from '@/common/services/html-compiler.service';
+import { NotificationRepository } from '@/modules/notifications/application/repositories/notifications-repository';
+import { ContractService } from '@/modules/booking/application/services/contract.service';
+import { ContractRepository, ContractViolationRepository } from '@/modules/booking/application/repository/contract.repository';
+import { PdfService } from '@/common/services/pdf.service';
+import { FileStorageService } from '@/common/services/file-storage.service';
 
 export const initializeDI = (dataSource: DataSource) => {
   // Register TypeORM repositories
@@ -148,6 +158,15 @@ export const initializeDI = (dataSource: DataSource) => {
 
   Container.set(SessionRepository, dataSource.getRepository(Session));
   Container.set(OTPRepository, dataSource.getRepository(OTP));
+  Container.set(NotificationRepository, dataSource.getRepository(Notification));
+
+
+
+
+
+
+  Container.set(ContractRepository, dataSource.getRepository(Contract));
+  Container.set(ContractViolationRepository, dataSource.getRepository(ContractVoilation));
 
   // Register providers
   Container.set(MessageBrokerToken, new MessageBroker());
@@ -165,38 +184,18 @@ export const initializeDI = (dataSource: DataSource) => {
       Container.get(ResourceRepository)
     )
   );
+  Container.set(
+    ContractService,
+    new ContractService(Container.get(ContractRepository), Container.get(BookingsRepositoryToken), Container.get(ContractViolationRepository), Container.get(PdfService), Container.get(MessageBrokerToken))
+  );
 
   Container.set(
     CryptoPaymentService,
     new CryptoPaymentService(Container.get(HttpService))
   );
 
-  // Container.set(
-  //     CryptoPaymentFactory,
-  //     new CryptoPaymentFactory(
-  //         {
-  //             ethereum: {
-  //                 hdMnemonic: envConf.ethMnemonic,
-  //                 mainWalletAddress: envConf.ethWalletAddress,
-  //                 rpcUrl: envConf.ethRpcUrl,
-  //                 usdtContractAddress: envConf.ethUsdtContractAddress,
-  //                 wsUrl: envConf.ethWsUrl,
-  //                 basePath: envConf.ethBasePath
-  //             },
-  //             tron: {
-  //                 fullHost: envConf.tronFullHost,
-  //                 hdMnemonic: envConf.tronMnemonic,
-  //                 mainWalletAddress: envConf.tronMainWalletAddress,
-  //                 usdtContractAddress: envConf.tronUsdtContractAddress,
-  //                 basePath: envConf.tronBasePath,
-  //                 fullHostApiKey: envConf.tronFullHostApiKey,
-  //                 privateKey: envConf.tronPrivateKey
-  //             }
-  //         },
-  //         Container.get(AddressMappingRepository),
-  //         Container.get(CurrencyService)
-  //     )
-  // );
+  Container.set(NotificationService, new NotificationService(Container.get(NotificationRepository)))
+  Container.set(HtmlCompilerService, new HtmlCompilerService())
 
   Container.set(
     PaymentService,
@@ -215,6 +214,12 @@ export const initializeDI = (dataSource: DataSource) => {
     new CurrencyService(Container.get(HttpService))
   );
 
+  Container.set(HtmlCompilerService, new HtmlCompilerService())
+  Container.set(FileStorageService, new FileStorageService())
+
+  Container.set(PdfService, new PdfService(Container.get(HtmlCompilerService), Container.get(FileStorageService)));
+
+
   Container.set(StripeService, new StripeService());
 
   Container.set(
@@ -227,7 +232,8 @@ export const initializeDI = (dataSource: DataSource) => {
       Container.get(PaymentService),
       Container.get(SerializerService),
       Container.get(MessageBrokerToken),
-      Container.get(PricingService)
+      Container.get(PricingService),
+      Container.get(ContractService)
     )
   );
 

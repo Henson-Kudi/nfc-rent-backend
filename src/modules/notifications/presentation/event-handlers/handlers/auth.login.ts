@@ -1,11 +1,11 @@
 import { User } from '@/common/entities';
 import { OTPType } from '@/common/enums';
+import { HtmlCompilerService } from '@/common/services/html-compiler.service';
 import logger from '@/common/utils/logger';
 import generateRandomNumber from '@/common/utils/randomNumber';
 import { PasswordManagerToken } from '@/modules/auth/infrastructure/providers/password-manager';
 import { OTPRepository } from '@/modules/auth/infrastructure/repositories/otp.repository';
-import notificationsService from '@/modules/notifications/application/services';
-import { SendNotificationDTO } from '@/modules/notifications/domain';
+import { NotificationService } from '@/modules/notifications/application/services';
 import moment from 'moment';
 import Container from 'typedi';
 
@@ -14,8 +14,6 @@ type OneTimeOtpParams = {
 };
 
 const handleUserLoginMessage: MessageHandler = async (message) => {
-  const passwordManager = Container.get(PasswordManagerToken);
-  const OtpRepository = Container.get(OTPRepository);
   // generate otp code
   // hash the code
   // save in db
@@ -43,9 +41,23 @@ const handleUserLoginMessage: MessageHandler = async (message) => {
   }
 
   if (user?.requiresOtp) {
+    const compilerService = Container.get(HtmlCompilerService)
+    const notificationService = Container.get(NotificationService)
+    const passwordManager = Container.get(PasswordManagerToken);
+    const OtpRepository = Container.get(OTPRepository);
+    
     const otpCode = generateRandomNumber(6);
     const hashedOtp = await passwordManager.encryptPassword(otpCode);
     const otpExpireAt = moment().add(15, 'minutes').toDate();
+
+    const templatePath = 'templates/auth/otp.html'
+    const templateData = {
+      username: user.fullName,
+      otpCode,
+      expiry: '15 minutes'
+    }
+
+    const compiledHtml = compilerService.compile(templatePath, templateData)
 
     try {
       await OtpRepository.save(
@@ -56,9 +68,14 @@ const handleUserLoginMessage: MessageHandler = async (message) => {
           user,
         })
       );
-      await notificationsService.send(
+
+      await notificationService.send(
         'EMAIL',
-        { otp: otpCode } as any
+        {
+          to: user?.email,
+          html: compiledHtml,
+          subject: 'On Time OTP Code',
+        }
       );
     } catch (error) {
       logger.error(error);

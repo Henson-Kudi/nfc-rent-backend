@@ -3,8 +3,8 @@ import { ChangePasswordDto } from '@/modules/auth/domain/dtos';
 import IPasswordManager from '../providers/passwordManager';
 import { ResponseCodes } from '@/common/enums';
 import logger from '@/common/utils/logger';
-import { passwordChanged } from '../../utils/messageTopics.json';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
+import { UserEvents } from '@/common/message-broker/events/user.events';
 
 class ChangePassword
   implements IUseCase<[ChangePasswordData], IReturnValue<{ success: boolean }>>
@@ -72,7 +72,7 @@ class ChangePassword
 
     // Publish password changed event
     try {
-      await this.messageBroker.publishMessage(passwordChanged, { data: user });
+      await this.messageBroker.publishMessage(UserEvents.passwordChanged, { data: user });
     } catch (err) {
       logger.error('Failed to publish password changed event', err);
     }

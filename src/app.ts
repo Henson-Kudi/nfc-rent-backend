@@ -21,13 +21,8 @@ const corsOptions: CorsOptions = {
 };
 app.use(cors(corsOptions));
 
-// app.use((req, res, next) => {
-//   if (req.path.includes('/webhook')) {
-//     app.use(express.raw())(req, res, next);
-//   } else {
-//     app.use(express.json())(req, res, next);
-//   }
-// });
+app.use(express.json())
+
 app.use(express.urlencoded({ extended: true }));
 // Cookie parser
 app.use(cookierParser());
@@ -43,6 +38,14 @@ app.use(deviceDetailsMiddleware); //Register all other routes below this middlew
 
 // Register all routes here
 app.use('/api/v1', appRouter);
+
+// Custom 404 handler
+app.use((_, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Resource not found",
+  });
+});
 
 // Global error handler
 app.use(globalErrorHandler);

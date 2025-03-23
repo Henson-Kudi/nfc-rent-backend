@@ -7,18 +7,18 @@ import { cleanup } from './cleanup';
 import { connectCache } from './common/cache/redis-cache';
 import { connectMessageBroker } from './common/message-broker';
 import subscribeToEvents from './modules/notifications/presentation/event-handlers/subscriptions';
-import { subscriptions as authSubscriptions } from './modules/notifications/utils/message-topics.json';
 import { initializeDb } from './common/database';
 import { initializeDI } from './loaders/di';
+
 
 // Run application
 (async () => {
   // await runMigrations()
 
   // Connect to datasource before starting the server
-  const datsSource = await initializeDb();
+  const dataSource = await initializeDb();
 
-  initializeDI(datsSource);
+  initializeDI(dataSource);
 
   // const repo = Container.get(AddressMappingRepository)
 
@@ -39,7 +39,7 @@ import { initializeDI } from './loaders/di';
   // console.log(fiat)
 
   // Make sure to seed modules before seeding roles
-  // await seedModules(datsSource)
+  // await seedModules(dataSource)
 
   // await seedDefaultRoles(dataSource)
 
@@ -52,7 +52,7 @@ import { initializeDI } from './loaders/di';
   // Connect to message broker
   connectMessageBroker().then(() => {
     // Subscribe to a channels here
-    subscribeToEvents(authSubscriptions);
+    subscribeToEvents();
   });
 
   // Start Cron Jobs

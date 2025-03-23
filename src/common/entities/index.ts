@@ -25,3 +25,5 @@ export {
 } from './booking/contract-voilation.entity';
 export { Payment } from './booking/payment.entity';
 export { AddressMapping } from './booking/address-mapping.entity';
+
+export { Notification } from './notifications/notification.entity'

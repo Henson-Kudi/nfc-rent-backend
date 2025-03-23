@@ -1,9 +1,9 @@
 import { AppError, IReturnValue } from '@/common/utils';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
-import { userProfileUpdated } from '../../utils/messageTopics.json';
 import logger from '@/common/utils/logger';
 import { ResponseCodes } from '@/common/enums';
 import { UpdateUserDTO } from '@/common/dtos';
+import { UserEvents } from '@/common/message-broker/events/user.events';
 
 export class UpdateUserUseCase
   implements
@@ -33,11 +33,11 @@ export class UpdateUserUseCase
     await this.repo.update(userId, validData);
 
     try {
-      this.messageBroker.publishMessage(userProfileUpdated, {
+      this.messageBroker.publishMessage(UserEvents.account.updated, {
         data: { id: userId, updated: validData },
       });
     } catch (error) {
-      logger.error(`Failed to publish ${userProfileUpdated} event`, error);
+      logger.error(`Failed to publish ${UserEvents.account.updated} event`, error);
     }
 
     return new IReturnValue({

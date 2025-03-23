@@ -1,7 +1,6 @@
 import { LoginType, ResponseCodes } from '../../../../common/enums';
 import { RegisterUserDto } from '../../domain/dtos';
 import IPasswordManager from '../providers/passwordManager';
-import { userRegistered } from '../../utils/messageTopics.json';
 import logger from '../../../../common/utils/logger';
 import { AppError, IReturnValue } from '../../../../common/utils';
 import { encryptData } from '@/common/utils/encryption';
@@ -12,6 +11,7 @@ import slugify from '@/common/utils/slugify';
 import { Role, User } from '@/common/entities';
 import { In } from 'typeorm';
 import { instanceToPlain } from 'class-transformer';
+import { AuthEvents } from '@/common/message-broker/events/auth.events';
 
 class RegisterUseCase
   implements
@@ -123,7 +123,7 @@ class RegisterUseCase
 
     // Publish user created event for otp code to be sent for email verification
     try {
-      await this.messageBroker.publishMessage(userRegistered, {
+      await this.messageBroker.publishMessage(AuthEvents.registered, {
         data: savedUser,
       });
     } catch (err) {

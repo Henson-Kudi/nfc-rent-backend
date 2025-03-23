@@ -57,6 +57,7 @@ export const NewContractSchema = Joi.object<CreateContractDto>({
     .items(CreateContractViolationSchema)
     .optional()
     .allow(null),
+  carPlateNumber: Joi.string().required()
 }).unknown();
 
 export const validateCreateContract = (

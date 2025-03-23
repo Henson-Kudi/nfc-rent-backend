@@ -4,9 +4,9 @@ import { LoginDto } from '@/modules/auth/domain/dtos';
 import { OAuth2Client } from 'google-auth-library';
 import envConf from '@/config/env.conf';
 import logger from '@/common/utils/logger';
-import { userRegistered } from '../../utils/messageTopics.json';
 import { User } from '@/common/entities';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
+import { AuthEvents } from '@/common/message-broker/events/auth.events';
 
 export default async function googleLogin(
   data: LoginDto,
@@ -66,7 +66,7 @@ export default async function googleLogin(
     }
 
     try {
-      await messageBroker.publishMessage(userRegistered, {
+      await messageBroker.publishMessage(AuthEvents.registered, {
         data: user,
       });
     } catch (err) {

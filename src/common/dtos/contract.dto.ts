@@ -60,4 +60,5 @@ export class CreateContractDto {
   fuelLevelReturn?: number;
   mileageAtPickup!: number;
   mileageAtReturn?: number;
+  carPlateNumber!: string
 }

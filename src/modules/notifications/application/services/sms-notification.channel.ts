@@ -1,9 +1,12 @@
 import envConf from '@/config/env.conf';
 import twilio from 'twilio';
 import { BaseNotificationChannel } from './base-notification.channel';
+import { validateSMSNotification } from '../../utils/validations';
+import { AppError } from '@/common/utils';
+import { ResponseCodes } from '@/common/enums';
 
 export class SMSNotificationChannel extends BaseNotificationChannel<
-  { from?: string; to: string; body: string },
+  SendSMSNotification,
   Promise<boolean>
 > {
   private readonly client: twilio.Twilio;
@@ -14,13 +17,27 @@ export class SMSNotificationChannel extends BaseNotificationChannel<
     this.client = twilio(this.smsConf.sid, this.smsConf.authToken);
   }
 
-  async send(args: SendSMSNotification): Promise<boolean> {
-    await this.client.messages.create({
-      to: args.to,
-      from: args.from || this.smsConf.defaultSender,
-      body: args.body,
+  async send(payload: SendSMSNotification): Promise<boolean> {
+    await this.validate(payload)
+
+    console.log(JSON.stringify(payload), 'payload sms')
+
+    const instance = await this.client.messages.create({
+      ...payload,
+      to: payload.to!
     });
 
+    if (instance.status === 'failed') {
+      throw new AppError({
+        message: instance?.errorMessage || 'Failed to send message',
+        statusCode: ResponseCodes.ServerError
+      })
+    }
+
     return true;
+  }
+
+  validate(data: unknown) {
+    return validateSMSNotification(data)
   }
 }

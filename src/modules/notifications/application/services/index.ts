@@ -1,42 +1,65 @@
-import notificationMemoryCache, {
-  NotificationMemoryCache,
-} from '../../config/memory-cache';
-import notificationsRepository from '../../infrastructure/repositories/notifications-repository';
-import templatesRepository from '../../infrastructure/repositories/templates-repository';
+import { Inject, Service } from 'typedi';
 import { NotificationType } from '../../types';
-import NotificationRepository from '../repositories/notifications-repository';
-import ITemplatesRepository from '../repositories/templates-repository';
-import { SendNotification } from '../use-cases/send-notification';
+import { NotificationRepository } from '../repositories/notifications-repository';
 import { NotificationChannelsFactory } from './index.channel';
+import { User } from '@/common/entities';
+import { AppError } from '@/common/utils';
+import { ResponseCodes } from '@/common/enums';
 
-class NotificationService {
-  private readonly repo: NotificationRepository;
+type SendNotificationPayload<T extends NotificationType> = T extends 'EMAIL' ? SendEmailNotification :
+  T extends 'SMS' ? SendSMSNotification :
+  SendPushNotification
+
+@Service()
+export class NotificationService {
   private readonly factory: NotificationChannelsFactory = new NotificationChannelsFactory();
-  private readonly templatesRepo: ITemplatesRepository;
-  private readonly cache: NotificationMemoryCache;
 
-  constructor(init: {
-    repo: NotificationRepository;
-    templatesRepo: ITemplatesRepository;
-    cache: NotificationMemoryCache;
-  }) {
-    this.repo = init.repo;
-    this.templatesRepo = init.templatesRepo;
-    this.cache = init.cache;
-  }
+  constructor(
+    @Inject()
+    private readonly notificationRepository: NotificationRepository
+  ) { }
 
-  send(type: "EMAIL", payload: SendEmailNotiication): Promise<boolean>
-  send(type: "SMS", payload: SendSMSNotification): Promise<boolean>
-  send(type: "PUSH", payload: SendPushNotification): Promise<boolean>
-  send(type: NotificationType, payload: SendEmailNotiication | SendSMSNotification | SendPushNotification): Promise<boolean> {
-    throw new Error('not implemented')
+  send<T extends NotificationType>(
+    type: T,
+    payload: SendNotificationPayload<T>,
+    persist?: false
+  ): Promise<boolean>
+  send<T extends NotificationType>(
+    type: T,
+    payload: SendNotificationPayload<T>,
+    persist: true,
+    sender: User,
+    receiver: User
+  ): Promise<boolean>
+  async send<T extends NotificationType>(
+    type: T,
+    payload: SendNotificationPayload<T>,
+    persist: boolean = false,
+    sender?: User,
+    receiver?: User
+  ): Promise<boolean> {
+    const channel = this.factory.getChannel(type);
+
+    const validPayload = await channel.validate(payload)
+
+    const result = await channel.send(validPayload);
+
+    if (persist) {
+      if (!sender || !receiver) {
+        throw new AppError({
+          message: "Message sent but not persisted. Invalid sender or receiver",
+          statusCode: ResponseCodes.BadRequest
+        })
+      }
+
+      await this.notificationRepository.save(this.notificationRepository.create({
+        receiver,
+        sender,
+        type,
+        content: payload,
+      }))
+    }
+
+    return result;
   }
 }
-
-const notificationsService = new NotificationService({
-  repo: notificationsRepository,
-  cache: notificationMemoryCache,
-  templatesRepo: templatesRepository,
-});
-
-export default notificationsService;

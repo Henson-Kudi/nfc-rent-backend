@@ -2,9 +2,9 @@ import { AppError, IReturnValue } from '@/common/utils';
 import { ResetPasswordDto } from '@/modules/auth/domain/dtos';
 import { ResponseCodes } from '@/common/enums';
 import logger from '@/common/utils/logger';
-import { resetPassword } from '../../utils/messageTopics.json';
 import { User } from '@/common/entities';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
+import { UserEvents } from '@/common/message-broker/events/user.events';
 
 class ResetPassword
   implements IUseCase<[{ email: string }], IReturnValue<{ sent: true }>>
@@ -43,7 +43,7 @@ class ResetPassword
 
     try {
       await this.messageBroker.publishMessage<User & { token: string }>(
-        resetPassword,
+        UserEvents.resetPassword,
         {
           data: { ...user, token: accessToken } as User & { token: string },
         }

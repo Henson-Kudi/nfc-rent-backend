@@ -26,6 +26,7 @@ import {
 } from '../../infrastructure/booking.repository';
 import { PricingService } from './pricing.service';
 import { CreateContractDto } from '@/common/dtos/contract.dto';
+import { ContractService } from './contract.service';
 
 @Service()
 export class BookingService {
@@ -45,10 +46,10 @@ export class BookingService {
     @Inject(MessageBrokerToken)
     private readonly messageBroker: IMessageBroker,
     @Inject()
-    private readonly pricingService: PricingService
-    // @Inject()
-    // private readonly contractService: ContractService
-  ) {}
+    private readonly pricingService: PricingService,
+    @Inject()
+    private readonly contractService: ContractService
+  ) { }
 
   async createBooking(dto: CreateBookingDto, actor: User) {
     const valid = await validateBookingSchema(dto);
@@ -186,7 +187,7 @@ export class BookingService {
   }) {
     const { actor, bookingId, locale, reason } = payload;
 
-    const booking = await this.bookingRepository.findOneBy({ id: bookingId });
+    let booking = await this.bookingRepository.findOneBy({ id: bookingId });
 
     if (!booking) {
       throw new AppError({
@@ -202,9 +203,7 @@ export class BookingService {
       });
     }
 
-    booking.status = BookingStatus.CANCELLED;
-    booking.cancellationReason = reason;
-    await this.bookingRepository.save(booking);
+    booking = await this.bookingRepository.save(this.bookingRepository.merge(booking, { status: BookingStatus.CANCELLED, cancellationReason: reason }));
 
     // Initiate refund if payment was made
     if (booking.payment?.status === PaymentStatus.PAID) {
@@ -231,12 +230,39 @@ export class BookingService {
     });
   }
 
+  async deleteBooking(bookingId: string, actor: User) {
+    const { data } = await this.getBooking(bookingId)
+    if (!data) {
+      throw new AppError({
+        message: "Booking not found",
+        statusCode: ResponseCodes.NotFound
+      })
+    }
+
+    // Booking cannot be deleted in PENDING or ACTIVE status
+    if ([BookingStatus.ACTIVE, BookingStatus.PENDING].includes(data.status)) {
+      throw new AppError({
+        message: `Booking cannot be deleted in current state: ${data.status}`,
+        statusCode: ResponseCodes.BadRequest
+      })
+    }
+
+    // Soft delete booking, then schedule a job to remove all relations of booking then hard delete booking after all relations have been removed in order to avoid foreign key constraint errors
+    await this.bookingRepository.softDelete(data.id)
+
+    this.messageBroker.publishMessage(BookingEvents.bookingDeleted, { data: { booking: data, actor } })
+
+    return new IReturnValue({ success: true, data, message: "Booking deleted successfully" })
+
+
+  }
+
   async confirmBooking(
     bookingId: string,
     actor: User,
     options?: {
       locale?: SupportedLocales;
-      contractData?: Omit<CreateContractDto, 'bookingId'>;
+      contractData?: CreateContractDto;
     }
   ) {
     const { locale } = options || {};
@@ -294,29 +320,31 @@ export class BookingService {
       // if 90% is captured, nothing to be done
     }
 
-    foundBooking.status = BookingStatus.CONFIRMED;
-    const updated = await this.bookingRepository.save(foundBooking);
+    const updated = await this.bookingRepository.save(this.bookingRepository.merge(foundBooking, {
+      status: BookingStatus.CONFIRMED,
+      plateNumber: options?.contractData?.carPlateNumber
+    }));
 
     // validate contract data if provided
-    // if (contractData) {
-    //   try {
-    //     const contract = await this.contractService.createContract(
-    //       {
-    //         ...contractData,
-    //         bookingId: updated.id,
-    //       },
-    //       actor
-    //     );
+    if (options?.contractData) {
+      try {
+        const contract = await this.contractService.createContract(
+          {
+            ...options?.contractData,
+            bookingId: updated.id,
+          },
+          actor
+        );
 
-    //     // save contract data to booking
-    //     updated.contract = contract.data;
-    //   } catch (error) {
-    //     logger.error(
-    //       `Failed to create contract for booking ${updated.id}`,
-    //       error
-    //     );
-    //   }
-    // }
+        // save contract data to booking
+        updated.contract = contract.data;
+      } catch (error) {
+        logger.error(
+          `Failed to create contract for booking ${updated.id}`,
+          error
+        );
+      }
+    }
 
     // Publish booking confirmed event
     try {
@@ -469,5 +497,11 @@ export class BookingService {
       page,
       total,
     });
+  }
+
+  async isUserBooking(userId: string, bookingId: string) {
+    const count = await this.bookingRepository.count({ where: { id: bookingId, user: { id: userId } }, relations: ['user'] })
+
+    return count > 0
   }
 }

@@ -9,7 +9,7 @@ import {
   OneToOne,
 } from 'typeorm';
 import { Base } from '../base';
-import { Session, OTP, Role, CarOwnershipDetail, Booking, Driver } from '..';
+import { Session, OTP, Role, CarOwnershipDetail, Booking, Driver, Notification } from '..';
 import { Exclude } from 'class-transformer';
 
 @Entity()
@@ -65,6 +65,12 @@ export class User extends Base {
 
   @OneToMany(() => Driver, (driver) => driver.user)
   drivers!: Driver[];
+
+  @OneToMany(() => Notification, (notification) => notification.sender)
+  sentNotifications!: Notification[];
+
+  @OneToMany(() => Notification, (notification) => notification.receiver)
+  notifications!: Notification[];
 
   @OneToOne(() => Driver)
   @JoinColumn()

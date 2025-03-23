@@ -13,8 +13,7 @@ import { OTPRepository } from '../../infrastructure/repositories/otp.repository'
 import { instanceToPlain } from 'class-transformer';
 
 class VerifyOtp
-  implements IUseCase<[OTPValidationData], IReturnValue<User & TokenDto>>
-{
+  implements IUseCase<[OTPValidationData], IReturnValue<User & TokenDto>> {
   constructor(
     private readonly repository: UserRepository,
     private readonly sessionRepo: SessionRepository,
@@ -22,7 +21,7 @@ class VerifyOtp
     private readonly passwordManager: IPasswordManager,
     private readonly totpProvider: TOTPMFA,
     private readonly tokenManager: ITokenManager
-  ) {}
+  ) { }
 
   async execute(
     params: OTPValidationData
@@ -80,7 +79,7 @@ class VerifyOtp
         user.emailVerified = true;
       } else if (
         decrypted.verificationType === OTPVERIFICATIONTYPES.PHONE &&
-        !user.phoneVerified
+        !user.phoneVerified && user.phone
       ) {
         await this.repository.update(
           { id: decrypted.id },

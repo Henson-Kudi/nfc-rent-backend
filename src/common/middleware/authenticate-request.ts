@@ -13,7 +13,7 @@ export default function authenticateRequest(
 ): (req: Request, res: Response, next: NextFunction) => Promise<void> {
   return async (
     req: Request,
-    res: Response,
+    _: Response,
     next: NextFunction
   ): Promise<void> => {
     try {

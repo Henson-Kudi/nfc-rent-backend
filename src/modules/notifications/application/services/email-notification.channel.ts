@@ -2,9 +2,10 @@ import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { BaseNotificationChannel } from './base-notification.channel';
 import nodemailer from 'nodemailer';
 import envConf from '@/config/env.conf';
+import { validateEmailNotification } from '../../utils/validations';
 
 export class EmailNotificationChannel extends BaseNotificationChannel<
-    SendEmailNotiication,
+    SendEmailNotification,
     Promise<boolean>
 > {
     private readonly mailerService: string = 'Gmail'; // just for testing. Change to a more robust service provider like aws
@@ -24,15 +25,18 @@ export class EmailNotificationChannel extends BaseNotificationChannel<
             },
         });
     }
-    async send(payload: SendEmailNotiication) {
+    async send(payload: SendEmailNotification) {
         // Validate payload
+        await this.validate(payload)
 
-        if (!payload.from) {
-            payload.from = this.mailConfig.defaultSender;
-        }
+        console.log(JSON.stringify(payload), 'payload email')
 
         await this.transporter.sendMail(payload);
 
         return true;
+    }
+
+    validate(data: unknown) {
+        return validateEmailNotification(data)
     }
 }

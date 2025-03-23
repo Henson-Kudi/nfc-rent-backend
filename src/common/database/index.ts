@@ -50,7 +50,7 @@ const runMigrations = async () => {
     type: 'postgres',
     entities: [`${envConf.rootDir}/src/common/entities/**/*.entity.{ts,js}`], // Since we're using share entity, all entities should be created in common/entities directory
     migrations: [`${envConf.rootDir}/src/migrations/*{.ts,.js}`],
-    synchronize: false,
+    synchronize: true,
     logging: envConf.NODE_ENV !== 'production',
   });
 

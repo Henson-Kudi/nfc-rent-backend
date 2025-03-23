@@ -4,7 +4,6 @@ import IPasswordManager from '../providers/passwordManager';
 import defaultLogin from './defaultLogin';
 import googleLogin from './google-login';
 import { LoginType, OTPType, ResponseCodes } from '@/common/enums';
-import { loggedIn } from '../../utils/messageTopics.json';
 import logger from '@/common/utils/logger';
 import { OTPVERIFICATIONTYPES } from '../../domain/enums';
 import { encryptData } from '@/common/utils/encryption';
@@ -12,6 +11,7 @@ import { User } from '@/common/entities';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
 import { SessionRepository } from '../../infrastructure/repositories/session.repository';
 import { instanceToPlain } from 'class-transformer';
+import { UserEvents } from '@/common/message-broker/events/user.events';
 class Login
   implements
     IUseCase<
@@ -86,7 +86,7 @@ class Login
         // notification service will subscribe to this event. in case user requires otp, it'll generate an otp code for the user and send
         this.messageBroker.publishMessage<
           User & { requiresOtp: boolean; otpType: OTPType }
-        >(loggedIn, {
+        >(UserEvents.loggedIn, {
           data: {
             ...user,
             requiresOtp: true,
@@ -142,7 +142,7 @@ class Login
         } else {
           this.messageBroker.publishMessage<
             User & { requiresOtp: boolean; otpType: OTPType }
-          >(loggedIn, {
+          >(UserEvents.loggedIn, {
             data: {
               ...user,
               requiresOtp: true,
@@ -181,7 +181,7 @@ class Login
       } else {
         this.messageBroker.publishMessage<
           User & { requiresOtp: boolean; otpType: OTPType }
-        >(loggedIn, {
+        >(UserEvents.loggedIn, {
           data: {
             ...user,
             requiresOtp: true,
@@ -237,7 +237,7 @@ class Login
 
     session = await this.sessionRepo.save(session);
 
-    this.messageBroker.publishMessage<User>(loggedIn, {
+    this.messageBroker.publishMessage<User>(UserEvents.loggedIn, {
       data: user,
     });
 

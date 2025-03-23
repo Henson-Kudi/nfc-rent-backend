@@ -526,6 +526,7 @@ type GetBookingOptions = {
 };
 
 type GetBookingsFilter = {
+  number?: string[];
   user?: string[];
   driver?: string[];
   car?: string[];
@@ -579,9 +580,9 @@ type EmailAttachment = {
   contentType: string; //if not set, make sure to set filename so it can be infered from
 };
 
-type SendEmailNotiication = {
+type SendEmailNotification = {
   from?: string;
-  to: string;
+  to?: string;
   cc?: string[] | string;
   attachments?: EmailAttachment[];
   html?: string; //html string
@@ -591,7 +592,7 @@ type SendEmailNotiication = {
 
 type SendPushNotificationBase = {
   data?: Record<string, string>;
-  notification: {
+  notification?: {
     title: string;
     body: string;
     imageUrl?: string;
@@ -649,11 +650,11 @@ type SendPushNotificationBase = {
 };
 
 type SendPushNotificationTopic = SendPushNotificationBase &
-  Record<'topic', string>;
+  {topic?: string};
 type SendPushNotificationCondition = SendPushNotificationBase &
-  Record<'condition', string>;
+  {condition?: string};
 type SendPushNotificationToken = SendPushNotificationBase &
-  Record<'token', string>;
+  {token?: string};
 
 type SendPushNotification =
   | SendPushNotificationCondition
@@ -662,6 +663,6 @@ type SendPushNotification =
 
 type SendSMSNotification = {
   from?: string;
-  to: string;
-  body: string;
+  to?: string;
+  body?: string;
 };

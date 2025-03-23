@@ -1,8 +1,8 @@
 import { IReturnValue } from '@/common/utils';
 import { LogoutDTO } from '../../domain/dtos';
 import logger from '@/common/utils/logger';
-import { loggedOut } from '../../utils/messageTopics.json';
 import { SessionRepository } from '../../infrastructure/repositories/session.repository';
+import { UserEvents } from '@/common/message-broker/events/user.events';
 
 class Logout
   implements IUseCase<[LogoutData], IReturnValue<{ success: boolean }>>
@@ -22,7 +22,7 @@ class Logout
         device: validData.deviceName,
       });
 
-      await this.messageBroker.publishMessage(loggedOut, { data: validData });
+      await this.messageBroker.publishMessage(UserEvents.loggedOut, { data: validData });
     } catch (err) {
       logger.error((err as Error)?.message, err);
     }

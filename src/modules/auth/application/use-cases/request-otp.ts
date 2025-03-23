@@ -4,7 +4,6 @@ import IPasswordManager from '../providers/passwordManager';
 import { ResponseCodes } from '@/common/enums';
 import generateRandomNumber from '@/common/utils/randomNumber';
 import moment from 'moment';
-import { requestOtp } from '../../utils/messageTopics.json';
 import logger from '@/common/utils/logger';
 import { OTPVERIFICATIONTYPES } from '../../domain/enums';
 import { encryptData } from '@/common/utils/encryption';
@@ -12,6 +11,7 @@ import { OTP, User } from '@/common/entities';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
 import { OTPRepository } from '../../infrastructure/repositories/otp.repository';
 import { instanceToPlain } from 'class-transformer';
+import { UserEvents } from '@/common/message-broker/events/user.events';
 
 const BASE_WAIT_TIME = 120; // 2mins - 120seconds
 const MAX_WAIT_TIME = 900; // 15mins - 900seconds
@@ -82,18 +82,18 @@ class RequestOTP
       // Generate new otp code for security
       const expireAt = moment().add(15, 'minutes').toDate();
 
-      otp = this.otpRepo.merge(otp, {
+      otp = await this.otpRepo.save(this.otpRepo.merge(otp, {
         count: otp.count + 1,
         expireAt: expireAt,
         token: harshedOtp,
-      });
+      }));
     } else {
       // Save token to db and
-      otp = this.otpRepo.create({
+      otp = await this.otpRepo.save(this.otpRepo.create({
         userId: user.id,
         token: harshedOtp,
         expireAt: moment().add(15, 'minutes').toDate(), // token expires after 10mins
-      });
+      }));
     }
 
     if (!otp) {
@@ -102,8 +102,6 @@ class RequestOTP
         message: 'Failed to resend otp',
       });
     }
-
-    otp = await this.otpRepo.save(otp);
 
     const encData = {
       ...user,
@@ -120,7 +118,7 @@ class RequestOTP
     try {
       this.messageBroker.publishMessage<
         User & { code: string; otpType: 'email' | 'phone' }
-      >(requestOtp, {
+      >(UserEvents.requestOtp, {
         data: {
           ...user,
           code,
@@ -128,7 +126,7 @@ class RequestOTP
         } as User & { code: string; otpType: 'email' | 'phone' },
       });
     } catch (err) {
-      logger.error(`Failed to publish ${requestOtp} message`, err);
+      logger.error(`Failed to publish ${UserEvents.requestOtp} message`, err);
     }
 
     return new IReturnValue({

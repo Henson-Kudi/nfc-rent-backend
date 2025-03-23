@@ -1,8 +1,12 @@
 import { User } from '@/common/entities';
+import { HtmlCompilerService } from '@/common/services/html-compiler.service';
 import logger from '@/common/utils/logger';
 import generateRandomNumber from '@/common/utils/randomNumber';
-import notificationsService from '@/modules/notifications/application/services';
-import { SendNotificationDTO } from '@/modules/notifications/domain';
+import { PasswordManagerToken } from '@/modules/auth/infrastructure/providers/password-manager';
+import { OTPRepository } from '@/modules/auth/infrastructure/repositories/otp.repository';
+import { NotificationService } from '@/modules/notifications/application/services';
+import moment from 'moment';
+import Container from 'typedi';
 
 type OneTimeOtpParams = {
   otp: string;
@@ -17,7 +21,7 @@ const handleRequestOtpMessage: MessageHandler = async (message) => {
       user = userData;
     } else {
       logger.warn(
-        `Invalid user object passed. Processing data will fial.`,
+        `Invalid user object passed. Processing data will fail.`,
         userData
       );
     }
@@ -32,26 +36,37 @@ const handleRequestOtpMessage: MessageHandler = async (message) => {
 
   if (!user?.code) {
     const otpCode = generateRandomNumber(6);
-    // const hashedOtp = await passwordManager.encryptPassword(otpCode);
-    // const otpExpireAt = moment().add(15, 'minutes').toDate();
 
-    // await oTPRepository.create({
-    //     data: {
-    //         expireAt: otpExpireAt,
-    //         token: hashedOtp,
-    //         userId: user.id,
-    //     },
-    // });
     user.code = otpCode;
   }
 
+  const notificationsService = Container.get(NotificationService)
+  const compilerService = Container.get(HtmlCompilerService)
+
   const otpType = user.otpType === 'email' ? 'EMAIL' : 'SMS';
-  const receipient = user.otpType === 'email' ? user.email : user.phone!;
+
+  const templatePath = 'templates/auth/otp.html'
+  const templateData = {
+    username: user.fullName,
+    otpCode: user.code,
+    expiry: '15 minutes'
+  }
+
+  const compiledHtml = compilerService.compile(templatePath, templateData)
 
   try {
+    const notificationData = user.otpType === 'email' ? {
+      to: user?.email,
+      html: compiledHtml,
+      subject: 'On Time OTP Code',
+    } : {
+      body: `Your one time otp code is: ${user.code}.\nThis code will expire in 15minutes`,
+      to: user.phone!
+    }
+
     await notificationsService.send(
-      'EMAIL',
-      { otp: user.code } as any
+      otpType,
+      notificationData
     );
   } catch (error) {
     logger.error((error as Error)?.message, error);

@@ -62,7 +62,6 @@ export const NewBookingSchema = Joi.object<CreateBookingDto>({
   pickupLocation: Joi.string().optional().allow('').allow(null),
   returnLocation: Joi.string().optional().allow('').allow(null),
   pricing: Joi.string().required(), // jwt token from pricing service. We'll decode this token and use its price data
-  plateNumber: Joi.string().required(), // jwt token from pricing service. We'll decode this token and use its price data
   selectedAddons: Joi.array()
     .items(
       Joi.object({

@@ -8,7 +8,8 @@ import envConf from '@/config/env.conf';
 export class HtmlCompilerService {
   compile<T = unknown>(templatePath: string, data: T): string {
     // Load the HTML template from the file system
-    const fullPath = path.resolve(envConf.rootDir, templatePath);
+
+    const fullPath = path.resolve(envConf.rootDir, 'src', templatePath);
     if (!fs.existsSync(fullPath)) {
       throw new Error(`Template file not found: ${fullPath}`);
     }

@@ -1,7 +1,7 @@
 import { IReturnValue } from '@/common/utils';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
-import { userDeleted } from '../../utils/messageTopics.json';
 import logger from '@/common/utils/logger';
+import { UserEvents } from '@/common/message-broker/events/user.events';
 
 export class SoftDeleteUserUseCase
   implements IUseCase<[string], IReturnValue<boolean>>
@@ -17,9 +17,9 @@ export class SoftDeleteUserUseCase
     });
 
     try {
-      this.messageBroker.publishMessage(userDeleted, { data: { userId } });
+      this.messageBroker.publishMessage(UserEvents.account.deleted, { data: { userId } });
     } catch (err) {
-      logger.error(`Failed to publish ${userDeleted} message`, err);
+      logger.error(`Failed to publish ${UserEvents.account.deleted} message`, err);
     }
 
     return new IReturnValue({

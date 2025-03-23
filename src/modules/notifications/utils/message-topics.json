@@ -1,9 +1,0 @@
-{
-  "subscriptions": {
-    "userRegistered": "auth.user.created",
-    "loggedIn": "auth.user.logged_in",
-    "requestOtp": "auth.otp.request",
-    "resetPassword": "auth.user.reset_password",
-    "passwordChanged": "auth.user.password_changed"
-  }
-}
